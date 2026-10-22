@@ -1,0 +1,41 @@
+# Turniq para iOS (nativa, SwiftUI)
+
+La versión iPhone de Turniq, escrita en Swift puro como paquete
+SwiftPM — el formato que **xtool** compila, firma e instala sin Mac.
+Mismo modelo de datos y mismas reglas que la app de Android:
+
+- Totales SOLO de turnos ya trabajados (criterio global).
+- **Horas extra POR TRABAJO**: el umbral semanal se aplica a cada
+  empleo por separado, con su sueldo y su impuesto.
+- PIN de reloj por trabajo (opcional): se muestra al marcar entrada
+  y en el recordatorio del próximo turno.
+- Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
+  respaldo JSON compatible con el de Android.
+
+## Estado (v1, 22 oct 2026)
+
+Incluye: Inicio (héroe de neto trabajado, marcar entrada/salida,
+próximo turno con su PIN), Semana (navegación, tarjeta de hora
+extra por trabajo, duplicar semana), Trabajos (CRUD con estaciones
+y PIN de reloj), Ganancias (trabajado vs programado, por trabajo,
+totales del mes), Más/Ajustes (PIN de la app + Face ID, horas
+extra, meta, exportar/importar respaldo), avisos por notificación
+local.
+
+Pendiente (fase 2): sincronización con Google Calendar/Gmail,
+pantalla de Plantillas, reportes PDF/CSV, calendario mensual.
+
+**Nota iOS:** Apple no permite alarmas a pantalla completa de
+terceros; los avisos son notificaciones con sonido.
+
+## Compilar con xtool
+
+```sh
+xtool setup     # instala el SDK de Darwin (pide el Xcode.xip)
+xtool auth      # TU Apple ID — solo el dueño firma
+xtool dev       # compila, firma e instala en el iPhone conectado
+```
+
+Firma gratuita: la app vence a los 7 días (reinstalar). Con Apple
+Developer Program ($99/año): firma de 1 año y TestFlight sin
+cables, subiendo con la API key de App Store Connect.

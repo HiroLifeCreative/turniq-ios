@@ -1,0 +1,10 @@
+# Configuración de xtool para Turniq iOS.
+# Compilar e instalar con xtool (sin Mac):
+#   xtool setup            # una vez: SDK de iOS (pide el Xcode.xip)
+#   xtool auth             # inicia sesión con TU Apple ID (solo tú)
+#   xtool dev              # compila, firma e instala en el iPhone
+# Firma gratuita de Apple: la app vence a los 7 días y hay que
+# reinstalarla; con Apple Developer Program ($99/año) dura 1 año
+# y se puede distribuir por TestFlight sin cables.
+version: 1
+bundleID: com.hirolifecreative.turniq
