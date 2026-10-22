@@ -25,14 +25,13 @@ struct EarningsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
+        ScrollView {
+            VStack(spacing: 16) {
                     DarkCard {
                         VStack(alignment: .leading, spacing: 6) {
                             MonoLabel(text: "Neto trabajado · esta semana", color: .white.opacity(0.55))
                             Text(Calc.money(worked.net))
-                                .font(.system(size: 36, weight: .bold)).foregroundStyle(.white)
+                                .font(.turniq(36, .bold)).foregroundStyle(.white)
                             HStack(spacing: 16) {
                                 Label(Calc.fmtHours(worked.hours), systemImage: "clock")
                                 Label("\(Calc.money(worked.gross)) bruto", systemImage: "banknote")
@@ -71,8 +70,6 @@ struct EarningsView: View {
                     }
                 }
                 .padding()
-            }
-            .navigationTitle("Ganancias")
         }
     }
 

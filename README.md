@@ -14,6 +14,12 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 
 ## Estado (v1, 22 oct 2026)
 
+Diseño igualado con Android: dock flotante de vidrio solo-íconos
+con cápsula azul animada, banda superior oscura + hoja blanca
+redondeada (radio 28), engranaje que abre Más, tipografía Roboto
+bundleada (registro en tiempo de ejecución) y JetBrains Mono en
+las etiquetas. Sintaxis verificada con swiftc 6.1.2 (parse).
+
 Incluye: Inicio (héroe de neto trabajado, marcar entrada/salida,
 próximo turno con su PIN), Semana (navegación, tarjeta de hora
 extra por trabajo, duplicar semana), Trabajos (CRUD con estaciones

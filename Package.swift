@@ -22,7 +22,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Turniq",
-            path: "Sources/Turniq"
+            path: "Sources/Turniq",
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )

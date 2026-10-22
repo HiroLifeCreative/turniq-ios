@@ -1,4 +1,53 @@
 import SwiftUI
+import CoreText
+
+/// Registro de fuentes en tiempo de ejecución (Roboto + JetBrains
+/// Mono vienen bundleadas en Resources/Fonts). Así la app usa la
+/// misma tipografía que Android sin depender de claves de
+/// Info.plist que xtool tendría que generar.
+enum FontReg {
+    static private(set) var roboto = false
+    static private(set) var mono = false
+
+    static func register() {
+        roboto = load(["Roboto-Regular", "Roboto-Medium", "Roboto-Bold"])
+        mono = load(["JetBrainsMono_400Regular"])
+    }
+
+    private static func load(_ names: [String]) -> Bool {
+        var ok = false
+        for name in names {
+            let url = Bundle.module.url(forResource: name, withExtension: "ttf", subdirectory: "Fonts")
+                ?? Bundle.module.url(forResource: name, withExtension: "ttf", subdirectory: "Resources/Fonts")
+                ?? Bundle.module.url(forResource: name, withExtension: "ttf")
+                ?? Bundle.main.url(forResource: name, withExtension: "ttf")
+            guard let url else { continue }
+            var err: Unmanaged<CFError>?
+            if CTFontManagerRegisterFontsForURL(url as CFURL, .process, &err) { ok = true }
+        }
+        return ok
+    }
+}
+
+extension Font {
+    /// Roboto (Regular/Medium/Bold) si el registro funcionó; si no,
+    /// la fuente del sistema — nunca se cae la app por la fuente.
+    static func turniq(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        guard FontReg.roboto else { return .system(size: size, weight: weight) }
+        switch weight {
+        case .bold, .heavy, .black, .semibold:
+            return .custom("Roboto-Bold", size: size)
+        case .medium:
+            return .custom("Roboto-Medium", size: size)
+        default:
+            return .custom("Roboto", size: size)
+        }
+    }
+
+    static var turniqMono: Font {
+        FontReg.mono ? .custom("JetBrainsMono-Regular", size: 11) : .system(size: 11, weight: .medium, design: .monospaced)
+    }
+}
 
 /// Identidad visual de Turniq (la misma línea de Android):
 /// todo redondeado, botones principales AZULES sólidos #0392FF,
@@ -64,7 +113,7 @@ struct MonoLabel: View {
     var color: Color = .secondary
     var body: some View {
         Text(text.uppercased())
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .font(.turniqMono)
             .foregroundStyle(color)
     }
 }

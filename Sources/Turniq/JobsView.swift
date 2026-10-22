@@ -1,13 +1,15 @@
 import SwiftUI
 
+/// Trabajos en TARJETAS (radio 20, como el resto de la app) —
+/// nada de listas del sistema.
 struct JobsView: View {
     @EnvironmentObject var store: Store
     @State private var editing: Job? = nil
     @State private var creating = false
 
     var body: some View {
-        NavigationStack {
-            List {
+        ScrollView {
+            VStack(spacing: 12) {
                 ForEach(store.jobs) { job in
                     Button { editing = job } label: {
                         HStack(spacing: 12) {
@@ -16,25 +18,35 @@ struct JobsView: View {
                                 Text(job.nombre).font(.headline).foregroundStyle(.primary)
                                 Text("\(Calc.money(job.sueldoHora))/h · \(job.taxPct.formatted())% taxes\(job.pinMarcaje.map { " · PIN \($0)" } ?? "")")
                                     .font(.subheadline).foregroundStyle(.secondary)
+                                if !job.estaciones.isEmpty {
+                                    Text(job.estaciones.map { $0.nombre }.joined(separator: " · "))
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
                             }
                             Spacer()
-                            Text("Editar").font(.subheadline).foregroundStyle(T.primary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.bold()).foregroundStyle(.secondary)
                         }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
-                    .swipeActions {
+                    .buttonStyle(.plain)
+                    .contextMenu {
                         Button("Eliminar", role: .destructive) { store.deleteJob(id: job.id) }
                     }
                 }
-            }
-            .navigationTitle("Trabajos")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { creating = true } label: { Image(systemName: "plus") }
+                if store.jobs.isEmpty {
+                    Text("Todavía no tienes trabajos. Crea el primero con el botón de abajo.")
+                        .font(.callout).foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
                 }
+                PrimaryButton(title: "Nuevo trabajo") { creating = true }
             }
-            .sheet(item: $editing) { j in JobFormView(editing: j) }
-            .sheet(isPresented: $creating) { JobFormView(editing: nil) }
+            .padding()
         }
+        .sheet(item: $editing) { j in JobFormView(editing: j) }
+        .sheet(isPresented: $creating) { JobFormView(editing: nil) }
     }
 }
 

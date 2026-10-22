@@ -14,7 +14,7 @@ struct PinLockView: View {
         VStack(spacing: 28) {
             Spacer()
             Text("Turniq.")
-                .font(.system(size: 38, weight: .bold))
+                .font(.turniq(38, .bold))
             MonoLabel(text: "Escribe tu PIN")
             HStack(spacing: 16) {
                 ForEach(0..<4, id: \.self) { i in

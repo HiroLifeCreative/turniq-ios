@@ -27,36 +27,33 @@ struct WeekView: View {
     private static let dayNames = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    weekNav
-                    if store.settings.mostrarHoraExtra { otCard }
-                    ForEach(Array(days.enumerated()), id: \.offset) { idx, day in
-                        daySection(day: day, name: Self.dayNames[idx])
-                    }
-                    totalsCard
-                    PrimaryButton(title: "Duplicar semana a la siguiente") { confirmDup = true }
+        ScrollView {
+            VStack(spacing: 16) {
+                weekNav
+                if store.settings.mostrarHoraExtra { otCard }
+                ForEach(Array(days.enumerated()), id: \.offset) { idx, day in
+                    daySection(day: day, name: Self.dayNames[idx])
                 }
-                .padding()
+                totalsCard
+                PrimaryButton(title: "Duplicar semana a la siguiente") { confirmDup = true }
             }
-            .navigationTitle("Semana")
-            .sheet(item: $editing) { s in
-                ShiftFormView(editing: s)
-            }
-            .sheet(item: Binding(
-                get: { creating.map { FechaRef(fecha: $0) } },
-                set: { creating = $0?.fecha }
-            )) { ref in
-                ShiftFormView(editing: nil, defaultFecha: ref.fecha)
-            }
-            .confirmationDialog(
-                "¿Duplicar los \(weekShifts.count) turnos de esta semana a la siguiente?",
-                isPresented: $confirmDup
-            ) {
-                Button("Duplicar") { store.duplicateWeek(monday: monday) }
-                Button("Cancelar", role: .cancel) {}
-            }
+            .padding()
+        }
+        .sheet(item: $editing) { s in
+            ShiftFormView(editing: s)
+        }
+        .sheet(item: Binding(
+            get: { creating.map { FechaRef(fecha: $0) } },
+            set: { creating = $0?.fecha }
+        )) { ref in
+            ShiftFormView(editing: nil, defaultFecha: ref.fecha)
+        }
+        .confirmationDialog(
+            "¿Duplicar los \(weekShifts.count) turnos de esta semana a la siguiente?",
+            isPresented: $confirmDup
+        ) {
+            Button("Duplicar") { store.duplicateWeek(monday: monday) }
+            Button("Cancelar", role: .cancel) {}
         }
     }
 

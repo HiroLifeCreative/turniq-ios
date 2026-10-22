@@ -35,23 +35,20 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    hero
-                    if let open = store.openShift {
-                        workingCard(open)
-                    } else if !todayShifts.isEmpty {
-                        PrimaryButton(title: "Marcar entrada ahora") { showClockSheet = true }
-                    }
-                    if let next = nextShift { nextCard(next) }
-                    todayList
+        ScrollView {
+            VStack(spacing: 16) {
+                hero
+                if let open = store.openShift {
+                    workingCard(open)
+                } else if !todayShifts.isEmpty {
+                    PrimaryButton(title: "Marcar entrada ahora") { showClockSheet = true }
                 }
-                .padding()
+                if let next = nextShift { nextCard(next) }
+                todayList
             }
-            .navigationTitle("Turniq")
-            .sheet(isPresented: $showClockSheet) { clockSheet }
+            .padding()
         }
+        .sheet(isPresented: $showClockSheet) { clockSheet }
     }
 
     private var hero: some View {
@@ -59,7 +56,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 6) {
                 MonoLabel(text: "Neto trabajado · esta semana", color: .white.opacity(0.55))
                 Text(Calc.money(totals.net))
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.turniq(40, .bold))
                     .foregroundStyle(.white)
                 HStack(spacing: 18) {
                     Label(Calc.fmtHours(totals.hours), systemImage: "clock")
