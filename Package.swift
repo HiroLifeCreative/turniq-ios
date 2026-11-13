@@ -35,7 +35,13 @@ let package = Package(
         .target(
             name: "TurniqWidget",
             dependencies: ["TurniqShared"],
-            path: "Sources/TurniqWidget"
+            path: "Sources/TurniqWidget",
+            // xtool arranca la extensión por _NSExtensionMain; sin esto el
+            // enlazador descarta el @main del widget (y con él todo su
+            // código) y el empaquetado falla con "Signing failed".
+            linkerSettings: [
+                .unsafeFlags(["-Xlinker", "-u", "-Xlinker", "_main"])
+            ]
         ),
         .target(
             name: "Turniq",
