@@ -14,6 +14,7 @@ enum Notifications {
 
     /// Reprograma los avisos de los turnos futuros (se llama al
     /// guardar/borrar turnos y al cambiar los minutos de aviso).
+    @MainActor
     static func reschedule(store: Store) {
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()

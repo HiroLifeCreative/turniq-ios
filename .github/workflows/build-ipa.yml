@@ -2,8 +2,6 @@ name: Build Turniq IPA
 
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/build-ipa]
 
 permissions:
   contents: read

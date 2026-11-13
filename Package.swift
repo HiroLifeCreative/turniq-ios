@@ -14,13 +14,13 @@ let package = Package(
         .iOS(.v17)
     ],
     products: [
-        .executable(
+        .library(
             name: "Turniq",
             targets: ["Turniq"]
         )
     ],
     targets: [
-        .executableTarget(
+        .target(
             name: "Turniq",
             path: "Sources/Turniq",
             resources: [

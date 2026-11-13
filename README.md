@@ -36,6 +36,17 @@ terceros; los avisos son notificaciones con sonido.
 
 ## Compilar con xtool
 
+Para generar un IPA sin firma (xtool 1.24.0, con el SDK de iOS instalado):
+
+```sh
+xtool dev build --configuration release --ipa
+```
+
+El archivo se genera dentro de `xtool/`. Antes de instalarlo en un
+iPhone hay que firmarlo con una cuenta de Apple mediante una herramienta
+de instalación, como Sideloadly, o compilar con la opción `--sign` tras
+configurar la cuenta en xtool.
+
 ```sh
 xtool setup     # instala el SDK de Darwin (pide el Xcode.xip)
 xtool auth      # TU Apple ID — solo el dueño firma

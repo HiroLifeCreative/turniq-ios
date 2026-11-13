@@ -8,3 +8,4 @@
 # y se puede distribuir por TestFlight sin cables.
 version: 1
 bundleID: com.hirolifecreative.turniq
+infoPath: Info.plist
