@@ -1,0 +1,53 @@
+# Compila Turniq iOS en una Mac de GitHub y deja el IPA (sin firmar)
+# como artefacto descargable. La firma se hace al instalar con xtool:
+#   xtool install Turniq.ipa
+name: Build IPA
+
+on:
+  push:
+    branches: ['claude/**', 'main']
+  workflow_dispatch:
+
+concurrency:
+  group: build-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versiones
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun -sdk iphoneos -show-sdk-path
+
+      - name: Instalar xtool
+        run: brew install xtool-org/tap/xtool
+
+      - name: Compilar IPA
+        run: |
+          set -o pipefail
+          xtool dev build --ipa --configuration release 2>&1 | tee build.log
+
+      - name: Localizar IPA
+        run: |
+          IPA=$(find . -name '*.ipa' -not -path './.build/*' | head -1)
+          [ -n "$IPA" ] || IPA=$(find . -name '*.ipa' | head -1)
+          echo "IPA: $IPA"
+          mkdir -p out && cp "$IPA" out/Turniq.ipa
+          unzip -l out/Turniq.ipa | tail -25
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Turniq-ipa
+          path: out/Turniq.ipa
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build.log
