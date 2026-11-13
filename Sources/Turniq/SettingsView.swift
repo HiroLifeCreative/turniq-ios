@@ -1,144 +1,164 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Ajustes + (por ahora) el resto del menú Más en iOS: datos
-/// (exportar/importar respaldo compatible con Android) y peligro.
+/// Ajustes (se abre desde Más): perfil, apariencia, trabajo, cobro,
+/// seguridad y datos (respaldo compatible con Android).
 struct SettingsView: View {
     @EnvironmentObject var store: Store
     @State private var pinInput = ""
     @State private var exporting = false
     @State private var importing = false
     @State private var confirmWipe = false
-    @State private var importError = false
+    @State private var importMessage: String? = nil
+
+    /// Enlace a un campo de Ajustes.
+    private func bind<V>(_ kp: WritableKeyPath<Settings, V>) -> Binding<V> {
+        Binding(
+            get: { store.settings[keyPath: kp] },
+            set: { v in store.setSettings { $0[keyPath: kp] = v } }
+        )
+    }
+
+    private var cierreAuto: Binding<Date> {
+        Binding(
+            get: { ShiftFormView.date(fromHHMM: store.settings.cierreAuto) },
+            set: { d in store.setSettings { $0.cierreAuto = Calc.hhmm(d) } }
+        )
+    }
+
+    private static let avisos: [(min: Int, label: String)] = [
+        (1440, "1 día antes"), (60, "1 hora antes"), (30, "30 min antes"),
+        (15, "15 min antes"), (0, "Al momento"),
+    ]
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Perfil") {
-                    TextField("Tu nombre", text: Binding(
-                        get: { store.settings.nombreUsuario },
-                        set: { v in store.setSettings { $0.nombreUsuario = v } }
-                    ))
-                }
+        Form {
+            Section("Perfil") {
+                TextField("Tu nombre", text: bind(\.nombreUsuario))
+            }
 
-                Section("Apariencia") {
-                    Toggle("Modo oscuro", isOn: Binding(
-                        get: { store.settings.dark },
-                        set: { v in store.setSettings { $0.dark = v } }
-                    ))
-                    Picker("Formato de hora", selection: Binding(
-                        get: { store.settings.formatoHora },
-                        set: { v in store.setSettings { $0.formatoHora = v } }
-                    )) {
-                        Text("12 h").tag("12h")
-                        Text("24 h").tag("24h")
+            Section("Apariencia") {
+                Toggle("Modo oscuro", isOn: bind(\.dark))
+                Picker("Formato de hora", selection: bind(\.formatoHora)) {
+                    Text("12 h").tag("12h")
+                    Text("24 h").tag("24h")
+                }
+                Toggle("Dinero oculto", isOn: bind(\.dineroOculto))
+            }
+
+            Section {
+                Picker("Día de cobro general", selection: bind(\.diaCobro)) {
+                    ForEach(0..<7, id: \.self) { i in
+                        Text(Calc.daysLong[i]).tag(i)
                     }
                 }
+                Toggle("Avisarme el día de cobro", isOn: bind(\.avisoCobro))
+            } header: {
+                Text("Cobro")
+            } footer: {
+                Text("Cada trabajo puede tener su propio ritmo (cada semana o cada 2 semanas) y su día: se cambia en Trabajos → Editar → Cobro. Este día se usa para los trabajos que no lo tengan.")
+            }
 
-                Section {
-                    HStack {
-                        Text("Después de (h/sem, por trabajo)")
-                        Spacer()
-                        TextField("40", value: Binding(
-                            get: { store.settings.umbralExtraHrs },
-                            set: { v in store.setSettings { $0.umbralExtraHrs = v ?? 40 } }
-                        ), format: .number)
+            Section {
+                LabeledContent("Hora extra después de (h/sem)") {
+                    TextField("40", value: bind(\.umbralExtraHrs), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 70)
-                    }
-                    HStack {
-                        Text("Multiplicador")
-                        Spacer()
-                        TextField("1.5", value: Binding(
-                            get: { store.settings.multExtra },
-                            set: { v in store.setSettings { $0.multExtra = v ?? 1.5 } }
-                        ), format: .number)
+                }
+                LabeledContent("Multiplicador") {
+                    TextField("1.5", value: bind(\.multExtra), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 70)
-                    }
-                    Toggle("Mostrar hora extra", isOn: Binding(
-                        get: { store.settings.mostrarHoraExtra },
-                        set: { v in store.setSettings { $0.mostrarHoraExtra = v } }
-                    ))
-                    HStack {
-                        Text("Meta semanal ($)")
-                        Spacer()
-                        TextField("600", value: Binding(
-                            get: { store.settings.metaSemanal },
-                            set: { v in store.setSettings { $0.metaSemanal = v ?? 0 } }
-                        ), format: .number)
+                }
+                Toggle("Mostrar hora extra", isOn: bind(\.mostrarHoraExtra))
+                LabeledContent("Meta semanal ($)") {
+                    TextField("600", value: bind(\.metaSemanal), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 90)
-                    }
-                    Toggle("Mostrar meta", isOn: Binding(
-                        get: { store.settings.mostrarMeta },
-                        set: { v in store.setSettings { $0.mostrarMeta = v } }
-                    ))
-                } header: {
-                    Text("Horas extra y meta")
-                } footer: {
-                    Text("La hora extra se cuenta por cada trabajo por separado, nunca sumando todos tus trabajos.")
                 }
+                Toggle("Mostrar meta", isOn: bind(\.mostrarMeta))
+                DatePicker("Cierre automático", selection: cierreAuto, displayedComponents: [.hourAndMinute])
+            } header: {
+                Text("Trabajo")
+            } footer: {
+                Text("La hora extra se cuenta por cada trabajo por separado, nunca sumando todos tus trabajos. Si un turno queda abierto, se cierra solo a la hora de cierre automático del día siguiente.")
+            }
 
-                Section("Seguridad") {
-                    if store.settings.pin == nil {
-                        HStack {
-                            SecureField("PIN de 4 dígitos", text: $pinInput)
-                                .keyboardType(.numberPad)
-                            Button("Guardar") {
-                                if pinInput.count == 4, pinInput.allSatisfy({ $0.isNumber }) {
-                                    store.setSettings { $0.pin = pinInput }
-                                    pinInput = ""
-                                }
+            Section {
+                ForEach(Self.avisos, id: \.min) { a in
+                    Toggle(a.label, isOn: Binding(
+                        get: { store.settings.avisosMin.contains(a.min) },
+                        set: { on in
+                            store.setSettings { s in
+                                s.avisosMin.removeAll { $0 == a.min }
+                                if on { s.avisosMin.append(a.min) }
                             }
-                            .disabled(pinInput.count != 4)
                         }
-                    } else {
-                        Button("Quitar PIN", role: .destructive) {
-                            store.setSettings { $0.pin = nil; $0.biometrico = false }
+                    ))
+                }
+            } header: {
+                Text("Avisos de turno")
+            } footer: {
+                Text("En iPhone los avisos son notificaciones con sonido; Apple no permite alarmas a pantalla completa a otras apps.")
+            }
+
+            Section("Seguridad") {
+                if store.settings.pin == nil {
+                    HStack {
+                        SecureField("PIN de 4 dígitos", text: $pinInput)
+                            .keyboardType(.numberPad)
+                        Button("Guardar") {
+                            if pinInput.count == 4, pinInput.allSatisfy({ $0.isNumber }) {
+                                store.setSettings { $0.pin = pinInput }
+                                pinInput = ""
+                            }
                         }
-                        Toggle("Face ID / Touch ID", isOn: Binding(
-                            get: { store.settings.biometrico },
-                            set: { v in store.setSettings { $0.biometrico = v } }
-                        ))
+                        .disabled(pinInput.count != 4)
+                    }
+                } else {
+                    Toggle("Face ID / Touch ID", isOn: bind(\.biometrico))
+                    Button("Quitar PIN", role: .destructive) {
+                        store.setSettings { $0.pin = nil; $0.biometrico = false }
                     }
                 }
+            }
 
-                Section("Datos") {
-                    Button("Exportar respaldo (JSON)") { exporting = true }
-                    Button("Importar respaldo") { importing = true }
-                    Button("Borrar todos los datos", role: .destructive) { confirmWipe = true }
+            Section {
+                Button("Exportar respaldo (JSON)") { exporting = true }
+                Button("Importar respaldo") { importing = true }
+                if let importMessage {
+                    Text(importMessage).font(.footnote).foregroundStyle(.secondary)
                 }
-
-                Section {
-                    Text("Turniq para iOS — versión nativa (SwiftUI). Mismos datos y reglas que tu app de Android.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
+                Button("Borrar todos los datos", role: .destructive) { confirmWipe = true }
+            } header: {
+                Text("Datos")
+            } footer: {
+                Text("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra.")
             }
-            .navigationTitle("Más")
-            .confirmationDialog("¿Borrar TODOS los datos de Turniq?", isPresented: $confirmWipe) {
-                Button("Borrar todo", role: .destructive) { store.wipeAll() }
-                Button("Cancelar", role: .cancel) {}
-            }
-            .alert("No pude importar ese archivo", isPresented: $importError) {
-                Button("OK", role: .cancel) {}
-            }
-            .fileExporter(
-                isPresented: $exporting,
-                document: JSONDocument(data: store.exportJSON() ?? Data()),
-                contentType: .json,
-                defaultFilename: "turniq-respaldo.json"
-            ) { _ in }
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
-                if case .success(let url) = result,
-                   url.startAccessingSecurityScopedResource(),
-                   let raw = try? Data(contentsOf: url) {
-                    url.stopAccessingSecurityScopedResource()
-                    if !store.importMerge(raw) { importError = true }
-                }
+        }
+        .navigationTitle("Ajustes")
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("¿Borrar TODOS los datos de Turniq?", isPresented: $confirmWipe, titleVisibility: .visible) {
+            Button("Borrar todo", role: .destructive) { store.wipeAll() }
+            Button("Cancelar", role: .cancel) {}
+        }
+        .fileExporter(
+            isPresented: $exporting,
+            document: JSONDocument(data: store.exportJSON() ?? Data()),
+            contentType: .json,
+            defaultFilename: "turniq-backup-\(Calc.todayYmd())"
+        ) { _ in }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            guard case .success(let url) = result else { return }
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            if let raw = try? Data(contentsOf: url), store.importMerge(raw) {
+                importMessage = "Respaldo importado."
+            } else {
+                importMessage = "No pude importar ese archivo."
             }
         }
     }

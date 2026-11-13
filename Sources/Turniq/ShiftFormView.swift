@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Formulario de turno (crear/editar). Convierte entre los strings
 /// del modelo ("YYYY-MM-DD", "HH:mm") y los Date de los pickers.
+/// Al editar deja corregir las horas REALES (las que mandan en el
+/// dinero) por si se olvidó marcar.
 struct ShiftFormView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
@@ -20,6 +22,12 @@ struct ShiftFormView: View {
     @State private var bono: String = ""
     @State private var notas: String = ""
     @State private var estacionesSel: Set<String> = []
+    @State private var marcoEntrada = false
+    @State private var marcoSalida = false
+    @State private var entradaReal: Date = Date()
+    @State private var salidaReal: Date = Date()
+    @State private var loaded = false
+    @State private var confirmDelete = false
 
     var body: some View {
         NavigationStack {
@@ -32,15 +40,17 @@ struct ShiftFormView: View {
                     }
                     Toggle("Día libre", isOn: $esLibre)
                 }
+                Section("Fecha") {
+                    DatePicker("Fecha", selection: $fecha, displayedComponents: [.date])
+                }
                 if !esLibre {
                     Section("Horario") {
-                        DatePicker("Fecha", selection: $fecha, displayedComponents: [.date])
                         DatePicker("Entrada", selection: $entrada, displayedComponents: [.hourAndMinute])
                         Toggle("Sin hora de salida", isOn: $sinSalida)
                         if !sinSalida {
                             DatePicker("Salida", selection: $salida, displayedComponents: [.hourAndMinute])
-                            if Calc.isOvernight(entrada: Self.hhmm(entrada), salida: Self.hhmm(salida)) {
-                                Text("Termina al día siguiente (+1 día)")
+                            if Calc.isOvernight(entrada: Calc.hhmm(entrada), salida: Calc.hhmm(salida)) {
+                                Text("Termina al día siguiente: \(Calc.shortDate(Calc.addDays(Calc.ymd(fecha), 1)))")
                                     .font(.caption).foregroundStyle(T.amber)
                             }
                         }
@@ -58,20 +68,33 @@ struct ShiftFormView: View {
                             }
                         }
                     }
+                    if editing != nil {
+                        Section {
+                            Toggle("Marqué entrada", isOn: $marcoEntrada)
+                            if marcoEntrada {
+                                DatePicker("Entrada real", selection: $entradaReal, displayedComponents: [.hourAndMinute])
+                                Toggle("Marqué salida", isOn: $marcoSalida)
+                                if marcoSalida {
+                                    DatePicker("Salida real", selection: $salidaReal, displayedComponents: [.hourAndMinute])
+                                }
+                            }
+                        } header: {
+                            Text("Horas trabajadas (reales)")
+                        } footer: {
+                            Text("Si marcaste, el dinero se calcula con estas horas y no con las programadas.")
+                        }
+                    }
                     Section("Extras") {
                         TextField("Propinas ($)", text: $propinas)
                             .keyboardType(.decimalPad)
                         TextField("Bono ($)", text: $bono)
                             .keyboardType(.decimalPad)
-                        TextField("Notas", text: $notas)
+                        TextField("Notas", text: $notas, axis: .vertical)
                     }
                 }
                 if editing != nil {
                     Section {
-                        Button("Eliminar turno", role: .destructive) {
-                            if let e = editing { store.deleteShift(id: e.id) }
-                            dismiss()
-                        }
+                        Button("Eliminar turno", role: .destructive) { confirmDelete = true }
                     }
                 }
             }
@@ -85,11 +108,20 @@ struct ShiftFormView: View {
                     Button("Guardar") { save() }.disabled(jobId.isEmpty)
                 }
             }
+            .confirmationDialog("¿Eliminar este turno?", isPresented: $confirmDelete, titleVisibility: .visible) {
+                Button("Eliminar", role: .destructive) {
+                    if let e = editing { store.deleteShift(id: e.id) }
+                    dismiss()
+                }
+                Button("Cancelar", role: .cancel) {}
+            }
             .onAppear(perform: load)
         }
     }
 
     private func load() {
+        guard !loaded else { return }
+        loaded = true
         if let e = editing {
             jobId = e.jobId
             fecha = Calc.parseDay(e.fecha) ?? Date()
@@ -98,10 +130,14 @@ struct ShiftFormView: View {
             sinSalida = e.horaSalida == nil
             esLibre = e.esLibre
             breakMin = e.breakMin
-            propinas = e.propinas > 0 ? "\(e.propinas)" : ""
-            bono = e.bono > 0 ? "\(e.bono)" : ""
+            propinas = e.propinas > 0 ? Self.num(e.propinas) : ""
+            bono = e.bono > 0 ? Self.num(e.bono) : ""
             notas = e.notas
             estacionesSel = Set(e.estacionIds)
+            marcoEntrada = e.horaEntradaReal != nil
+            marcoSalida = e.horaSalidaReal != nil
+            entradaReal = Self.date(fromHHMM: e.horaEntradaReal ?? e.horaEntrada)
+            salidaReal = Self.date(fromHHMM: e.horaSalidaReal ?? e.horaSalida ?? e.horaEntrada)
         } else {
             jobId = store.jobs.first?.id ?? ""
             fecha = Calc.parseDay(defaultFecha ?? Calc.todayYmd()) ?? Date()
@@ -111,32 +147,56 @@ struct ShiftFormView: View {
     }
 
     private func save() {
+        let day = Calc.ymd(fecha)
+        let inHm = Calc.hhmm(entrada)
+        let outHm: String? = (sinSalida || esLibre) ? nil : Calc.hhmm(salida)
+        // Fecha de salida explícita (como Android): el día siguiente
+        // si la salida es menor o igual a la entrada.
+        let outDay: String? = outHm == nil ? nil
+            : (Calc.isOvernight(entrada: inHm, salida: outHm) ? Calc.addDays(day, 1) : day)
+
+        var realIn: String? = nil
+        var realOut: String? = nil
+        var realOutDay: String? = nil
+        if editing != nil && marcoEntrada && !esLibre {
+            let rIn = Calc.hhmm(entradaReal)
+            realIn = rIn
+            if marcoSalida {
+                let rOut = Calc.hhmm(salidaReal)
+                realOut = rOut
+                realOutDay = Calc.isOvernight(entrada: rIn, salida: rOut) ? Calc.addDays(day, 1) : day
+            }
+        }
+
         let shift = Shift(
             id: editing?.id ?? UUID().uuidString,
             jobId: jobId,
             esLibre: esLibre,
             estacionIds: Array(estacionesSel),
-            fecha: Calc.ymd(fecha),
-            horaEntrada: Self.hhmm(entrada),
-            horaSalida: sinSalida ? nil : Self.hhmm(salida),
-            horaEntradaReal: editing?.horaEntradaReal,
-            horaSalidaReal: editing?.horaSalidaReal,
+            fecha: day,
+            fechaSalida: outDay,
+            horaEntrada: inHm,
+            horaSalida: outHm,
+            horaEntradaReal: realIn,
+            horaSalidaReal: realOut,
+            fechaSalidaReal: realOutDay,
             breakMin: breakMin,
-            propinas: Double(propinas.replacingOccurrences(of: ",", with: ".")) ?? 0,
-            bono: Double(bono.replacingOccurrences(of: ",", with: ".")) ?? 0,
+            propinas: Self.parse(propinas),
+            bono: Self.parse(bono),
             notas: notas,
             gcalEventId: editing?.gcalEventId
         )
         store.upsertShift(shift)
-        Notifications.reschedule(store: store)
         dismiss()
     }
 
-    static func hhmm(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "HH:mm"
-        return f.string(from: d)
+    static func parse(_ s: String) -> Double {
+        max(0, Double(s.replacingOccurrences(of: ",", with: ".")) ?? 0)
+    }
+
+    /// "12.5" / "12" — sin ceros de más.
+    static func num(_ n: Double) -> String {
+        n == n.rounded() ? String(Int(n)) : String(n)
     }
 
     static func date(fromHHMM hm: String) -> Date {

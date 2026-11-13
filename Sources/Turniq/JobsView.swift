@@ -1,52 +1,80 @@
 import SwiftUI
 
-/// Trabajos en TARJETAS (radio 20, como el resto de la app) —
-/// nada de listas del sistema.
+/// Trabajos en TARJETAS (radio 20, como el resto de la app): botón
+/// azul arriba y cada trabajo con Editar / Eliminar, igual que Android.
 struct JobsView: View {
     @EnvironmentObject var store: Store
     @State private var editing: Job? = nil
     @State private var creating = false
+    @State private var confirmDelete: Job? = nil
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
+                PrimaryButton(title: "+ Agregar trabajo", color: T.primary, textColor: .white) {
+                    creating = true
+                }
+                .padding(.bottom, 4)
+
                 ForEach(store.jobs) { job in
-                    Button { editing = job } label: {
-                        HStack(spacing: 12) {
-                            Circle().fill(T.hex(job.color)).frame(width: 14, height: 14)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(job.nombre).font(.headline).foregroundStyle(.primary)
-                                Text("\(Calc.money(job.sueldoHora))/h · \(job.taxPct.formatted())% taxes\(job.pinMarcaje.map { " · PIN \($0)" } ?? "")")
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                                if !job.estaciones.isEmpty {
-                                    Text(job.estaciones.map { $0.nombre }.joined(separator: " · "))
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption.bold()).foregroundStyle(.secondary)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button("Eliminar", role: .destructive) { store.deleteJob(id: job.id) }
-                    }
+                    jobCard(job)
                 }
                 if store.jobs.isEmpty {
-                    Text("Todavía no tienes trabajos. Crea el primero con el botón de abajo.")
-                        .font(.callout).foregroundStyle(.secondary)
-                        .padding(.vertical, 8)
+                    Text("Todavía no tienes trabajos. Crea el primero con el botón de arriba.")
+                        .font(.turniq(14)).foregroundStyle(T.text3)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 16)
                 }
-                PrimaryButton(title: "Nuevo trabajo") { creating = true }
             }
-            .padding()
+            .padding(16)
+            .padding(.bottom, dockClearance)
         }
         .sheet(item: $editing) { j in JobFormView(editing: j) }
         .sheet(isPresented: $creating) { JobFormView(editing: nil) }
+        .confirmationDialog(
+            "¿Eliminar este trabajo y sus turnos?",
+            isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Eliminar", role: .destructive) {
+                if let j = confirmDelete { store.deleteJob(id: j.id) }
+                confirmDelete = nil
+            }
+            Button("Cancelar", role: .cancel) { confirmDelete = nil }
+        }
+    }
+
+    private func jobCard(_ job: Job) -> some View {
+        var detail = "$\(ShiftFormView.num(job.sueldoHora))/h · \(ShiftFormView.num(job.taxPct))% tax"
+        if !job.estaciones.isEmpty {
+            detail += " · " + job.estaciones.map { $0.nombre }.joined(separator: ", ")
+        }
+        if let pin = job.pinMarcaje, !pin.isEmpty { detail += " · PIN \(pin)" }
+        let next = Pay.nextPayday(job, settings: store.settings, from: Calc.todayYmd())
+        return Card {
+            HStack(spacing: 12) {
+                Circle().fill(T.hex(job.color)).frame(width: 14, height: 14)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(job.nombre)
+                        .font(.turniq(17, .bold)).foregroundStyle(T.text).lineLimit(1)
+                    Text(detail)
+                        .font(.turniq(12)).foregroundStyle(T.text2)
+                    Label("\(Pay.summary(job, settings: store.settings)) · próximo \(Calc.shortDate(next))",
+                          systemImage: "wallet.pass")
+                        .font(.turniq(12)).foregroundStyle(T.text3)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Button { editing = job } label: {
+                    Text("Editar").font(.turniq(14, .bold)).foregroundStyle(T.text2)
+                }
+                .buttonStyle(.plain)
+                Button { confirmDelete = job } label: {
+                    Text("Eliminar").font(.turniq(14, .bold)).foregroundStyle(T.danger)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 
@@ -57,33 +85,95 @@ struct JobFormView: View {
 
     @State private var nombre = ""
     @State private var color = Job.palette[0]
-    @State private var sueldo = ""
-    @State private var tax = ""
+    @State private var sueldo = "15"
+    @State private var tax = "0"
     @State private var pinReloj = ""
     @State private var estaciones: [Station] = []
     @State private var nuevaEstacion = ""
+    @State private var freq: PayFreq = .semanal
+    @State private var payDay = 4
+    @State private var anchor = Date()
+    @State private var loaded = false
+
+    /// El trabajo tal como quedaría, para la vista previa del cobro.
+    private var draft: Job {
+        let pin = pinReloj.trimmingCharacters(in: .whitespaces)
+        let ancla = Calc.ymd(anchor)
+        return Job(
+            id: editing?.id ?? "nuevo",
+            nombre: nombre.trimmingCharacters(in: .whitespaces),
+            color: color,
+            sueldoHora: ShiftFormView.parse(sueldo),
+            taxPct: min(100, ShiftFormView.parse(tax)),
+            estaciones: estaciones,
+            pinMarcaje: pin.isEmpty ? nil : pin,
+            pagoFrecuencia: freq.rawValue,
+            pagoDia: freq == .semanal ? payDay : Calc.weekdayIndex(ancla),
+            pagoAncla: freq == .quincenal ? ancla : nil
+        )
+    }
+
+    private var payPreview: String {
+        let j = draft
+        let next = Pay.nextPayday(j, settings: store.settings, from: Calc.todayYmd())
+        let p = Pay.period(j, payday: next)
+        return "Próximo cobro: \(Calc.weekdayDate(next)). Te paga lo trabajado del \(Calc.shortDate(p.start)) al \(Calc.shortDate(p.end))."
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Trabajo") {
                     TextField("Nombre", text: $nombre)
-                    HStack {
-                        Text("Color")
-                        Spacer()
-                        ForEach(Job.palette, id: \.self) { c in
-                            Circle()
-                                .fill(T.hex(c))
-                                .frame(width: 26, height: 26)
-                                .overlay(Circle().stroke(Color.primary, lineWidth: color == c ? 2 : 0))
-                                .onTapGesture { color = c }
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Color").font(.caption).foregroundStyle(.secondary)
+                        HStack(spacing: 8) {
+                            ForEach(Job.palette, id: \.self) { c in
+                                Circle()
+                                    .fill(T.hex(c))
+                                    .frame(width: 30, height: 30)
+                                    .overlay(Circle().strokeBorder(T.text, lineWidth: color == c ? 3 : 0))
+                                    .onTapGesture { color = c }
+                            }
                         }
                     }
-                    TextField("Sueldo por hora ($)", text: $sueldo)
-                        .keyboardType(.decimalPad)
-                    TextField("% de taxes", text: $tax)
-                        .keyboardType(.decimalPad)
+                    .padding(.vertical, 4)
+                    LabeledContent("Sueldo por hora ($)") {
+                        TextField("15", text: $sueldo)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Taxes (%)") {
+                        TextField("0", text: $tax)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
+
+                Section {
+                    Picker("Me pagan", selection: $freq) {
+                        ForEach(PayFreq.allCases) { f in
+                            Text(f.label).tag(f)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    if freq == .semanal {
+                        Picker("Día de cobro", selection: $payDay) {
+                            ForEach(0..<7, id: \.self) { i in
+                                Text(Calc.daysLong[i]).tag(i)
+                            }
+                        }
+                    } else {
+                        DatePicker("Un día de cobro", selection: $anchor, displayedComponents: [.date])
+                    }
+                } header: {
+                    Text("Cobro")
+                } footer: {
+                    Text(freq == .quincenal
+                         ? "Elige cualquier fecha en que este trabajo te pagó o te va a pagar (por ejemplo tu último cheque). Turniq calcula los demás cobros cada 14 días.\n\(payPreview)"
+                         : payPreview)
+                }
+
                 Section {
                     TextField("Ej. 2001", text: $pinReloj)
                         .keyboardType(.numberPad)
@@ -92,6 +182,7 @@ struct JobFormView: View {
                 } footer: {
                     Text("El PIN que marcas en el reloj de este trabajo. Turniq te lo muestra al marcar entrada, para que no se te olvide.")
                 }
+
                 Section("Estaciones") {
                     ForEach(estaciones) { st in
                         Text(st.nombre)
@@ -106,50 +197,50 @@ struct JobFormView: View {
                                 nuevaEstacion = ""
                             }
                         }
-                        .disabled(nuevaEstacion.isEmpty)
-                    }
-                }
-                if editing != nil {
-                    Section {
-                        Button("Eliminar trabajo", role: .destructive) {
-                            if let e = editing { store.deleteJob(id: e.id) }
-                            dismiss()
-                        }
+                        .disabled(nuevaEstacion.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
             }
-            .navigationTitle(editing == nil ? "Nuevo trabajo" : "Editar trabajo")
+            .navigationTitle(editing == nil ? "Agregar trabajo" : "Editar trabajo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") { save() }.disabled(nombre.isEmpty)
+                    Button("Guardar") { save() }
+                        .disabled(nombre.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
-            .onAppear {
-                if let e = editing {
-                    nombre = e.nombre
-                    color = e.color
-                    sueldo = "\(e.sueldoHora)"
-                    tax = "\(e.taxPct)"
-                    pinReloj = e.pinMarcaje ?? ""
-                    estaciones = e.estaciones
-                }
-            }
+            .onAppear(perform: load)
+        }
+    }
+
+    private func load() {
+        guard !loaded else { return }
+        loaded = true
+        let today = Calc.todayYmd()
+        if let e = editing {
+            nombre = e.nombre
+            color = e.color
+            sueldo = ShiftFormView.num(e.sueldoHora)
+            tax = ShiftFormView.num(e.taxPct)
+            pinReloj = e.pinMarcaje ?? ""
+            estaciones = e.estaciones
+            freq = Pay.freq(e)
+            payDay = Pay.weekday(e, settings: store.settings)
+            let next = Pay.nextPayday(e, settings: store.settings, from: today)
+            anchor = Calc.parseDay(e.pagoAncla ?? next) ?? Date()
+        } else {
+            color = Job.palette.randomElement() ?? Job.palette[0]
+            payDay = min(6, max(0, store.settings.diaCobro))
+            let delta = ((payDay - Calc.weekdayIndex(today)) + 7) % 7
+            anchor = Calc.parseDay(Calc.addDays(today, delta)) ?? Date()
         }
     }
 
     private func save() {
-        let pin = pinReloj.trimmingCharacters(in: .whitespaces)
-        store.upsertJob(Job(
-            id: editing?.id ?? UUID().uuidString,
-            nombre: nombre,
-            color: color,
-            sueldoHora: Double(sueldo.replacingOccurrences(of: ",", with: ".")) ?? 0,
-            taxPct: Double(tax.replacingOccurrences(of: ",", with: ".")) ?? 0,
-            estaciones: estaciones,
-            pinMarcaje: pin.isEmpty ? nil : pin
-        ))
+        var job = draft
+        job.id = editing?.id ?? UUID().uuidString
+        store.upsertJob(job)
         dismiss()
     }
 }

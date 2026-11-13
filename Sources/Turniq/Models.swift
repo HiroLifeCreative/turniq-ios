@@ -2,6 +2,23 @@ import Foundation
 
 // MARK: - Modelo de datos de Turniq (idéntico al de la app Android)
 // Fechas "YYYY-MM-DD", horas "HH:mm" (24h). Dinero en dólares.
+//
+// La lectura es TOLERANTE: cualquier campo que falte en el JSON toma
+// su valor por defecto. Así un respaldo de Android (que omite campos
+// opcionales) o un archivo guardado por una versión anterior de la
+// app nunca falla al cargarse ni borra los datos.
+
+extension KeyedDecodingContainer {
+    /// Lee un valor; si falta, es null o tiene otro tipo, usa `def`.
+    func val<T: Decodable>(_ key: Key, _ def: T) -> T {
+        ((try? decodeIfPresent(T.self, forKey: key)) ?? nil) ?? def
+    }
+
+    /// Lee un valor opcional sin lanzar nunca.
+    func opt<T: Decodable>(_ key: Key) -> T? {
+        (try? decodeIfPresent(T.self, forKey: key)) ?? nil
+    }
+}
 
 struct Station: Codable, Identifiable, Equatable {
     var id: String
@@ -22,10 +39,38 @@ struct Job: Codable, Identifiable, Equatable {
     /// (ej. 2001, 255). Opcional. NO es el PIN de la app.
     var pinMarcaje: String?
 
+    // MARK: Cobro por trabajo
+    /// Cada cuánto paga este trabajo: "semanal" o "quincenal" (cada
+    /// 2 semanas). nil = semanal con el día de cobro de Ajustes.
+    var pagoFrecuencia: String?
+    /// Día de la semana en que paga: 0=lunes … 6=domingo.
+    /// nil = el día de cobro general de Ajustes.
+    var pagoDia: Int?
+    /// Solo quincenal: una fecha "YYYY-MM-DD" en la que este trabajo
+    /// pagó (o pagará). Los demás cobros caen cada 14 días desde ahí.
+    var pagoAncla: String?
+
+    // Misma paleta que Android (JOB_COLORS).
     static let palette: [String] = [
-        "#0064E0", "#D97706", "#0E9F6E", "#9333EA",
-        "#DB2777", "#0891B2", "#65A30D", "#DC2626",
+        "#0064E0", "#7C3AED", "#0E7C3E", "#D97706",
+        "#D13438", "#0E9BD8", "#DB2777", "#4B5563",
     ]
+}
+
+extension Job {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.val(.id, UUID().uuidString)
+        nombre = c.val(.nombre, "")
+        color = c.val(.color, Job.palette[0])
+        sueldoHora = c.val(.sueldoHora, 0)
+        taxPct = c.val(.taxPct, 0)
+        estaciones = c.val(.estaciones, [])
+        pinMarcaje = c.opt(.pinMarcaje)
+        pagoFrecuencia = c.opt(.pagoFrecuencia)
+        pagoDia = c.opt(.pagoDia)
+        pagoAncla = c.opt(.pagoAncla)
+    }
 }
 
 struct Shift: Codable, Identifiable, Equatable {
@@ -34,23 +79,49 @@ struct Shift: Codable, Identifiable, Equatable {
     /// Día libre (no cuenta horas ni dinero)
     var esLibre: Bool = false
     var estacionIds: [String] = []
-    /// "YYYY-MM-DD"
+    /// "YYYY-MM-DD" (día de la entrada)
     var fecha: String
+    /// "YYYY-MM-DD" explícita de la salida programada. nil en datos
+    /// viejos: ahí vale la regla "salida <= entrada = día siguiente".
+    var fechaSalida: String? = nil
     /// "HH:mm"
     var horaEntrada: String
-    /// "HH:mm"; nil = sin salida programada. Si es <= entrada, el
-    /// turno cruza medianoche y termina al día siguiente.
+    /// "HH:mm"; nil = sin salida programada.
     var horaSalida: String?
     /// "HH:mm" reales de marcaje
     var horaEntradaReal: String?
     var horaSalidaReal: String?
+    /// "YYYY-MM-DD" real de la salida marcada
+    var fechaSalidaReal: String? = nil
     /// Descanso no pagado, minutos
     var breakMin: Int = 0
     var propinas: Double = 0
     var bono: Double = 0
     var notas: String = ""
-    /// Evento de Google Calendar vinculado (sync, fase 2)
+    /// Evento de Google Calendar vinculado (Android)
     var gcalEventId: String?
+}
+
+extension Shift {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.val(.id, UUID().uuidString)
+        jobId = c.val(.jobId, "")
+        esLibre = c.val(.esLibre, false)
+        estacionIds = c.val(.estacionIds, [])
+        fecha = c.val(.fecha, "1970-01-05")
+        fechaSalida = c.opt(.fechaSalida)
+        horaEntrada = c.val(.horaEntrada, "09:00")
+        horaSalida = c.opt(.horaSalida)
+        horaEntradaReal = c.opt(.horaEntradaReal)
+        horaSalidaReal = c.opt(.horaSalidaReal)
+        fechaSalidaReal = c.opt(.fechaSalidaReal)
+        breakMin = c.val(.breakMin, 0)
+        propinas = c.val(.propinas, 0)
+        bono = c.val(.bono, 0)
+        notas = c.val(.notas, "")
+        gcalEventId = c.opt(.gcalEventId)
+    }
 }
 
 struct ShiftTemplate: Codable, Identifiable, Equatable {
@@ -63,11 +134,24 @@ struct ShiftTemplate: Codable, Identifiable, Equatable {
     var breakMin: Int = 0
 }
 
+extension ShiftTemplate {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.val(.id, UUID().uuidString)
+        nombre = c.val(.nombre, "")
+        jobId = c.val(.jobId, "")
+        estacionIds = c.val(.estacionIds, [])
+        horaEntrada = c.val(.horaEntrada, "09:00")
+        horaSalida = c.opt(.horaSalida)
+        breakMin = c.val(.breakMin, 0)
+    }
+}
+
 struct Settings: Codable, Equatable {
     var idioma: String = "es"           // "es" | "en"
     var nombreUsuario: String = ""
-    /// Día de cobro: 0=lunes … 4=viernes (semana lun–dom, cobro el
-    /// viernes de la semana siguiente por defecto)
+    /// Día de cobro general: 0=lunes … 6=domingo (por defecto
+    /// 4=viernes). Cada trabajo puede tener el suyo (Job.pagoDia).
     var diaCobro: Int = 4
     /// Avisos antes del turno, en minutos (1440 = 1 día)
     var avisosMin: [Int] = [30]
@@ -77,18 +161,76 @@ struct Settings: Codable, Equatable {
     var metaSemanal: Double = 600
     var mostrarMeta: Bool = true
     var mostrarHoraExtra: Bool = true
+    var terminosAceptados: Bool = false
+    /// Ojito del héroe: oculta el dinero con •••••
+    var dineroOculto: Bool = false
     var dark: Bool = false
     /// PIN de acceso a la app (4 dígitos) — distinto al pinMarcaje
     var pin: String? = nil
     var biometrico: Bool = false
     var formatoHora: String = "12h"     // "12h" | "24h"
     var onboardingDone: Bool = false
+    var sonidoAlarma: String = "clasica"
+    var posponerMin: Int = 10
+    /// "HH:mm" — hora tope del día siguiente para cerrar solo los
+    /// turnos que quedaron abiertos.
+    var cierreAuto: String = "04:00"
+
+    // MARK: Solo iOS
+    /// Copiar turnos y días de cobro al Calendario del iPhone
+    var calendarioSync: Bool = false
+    /// Aviso la mañana del día de cobro
+    var avisoCobro: Bool = true
+}
+
+extension Settings {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = Settings()
+        idioma = c.val(.idioma, d.idioma)
+        nombreUsuario = c.val(.nombreUsuario, d.nombreUsuario)
+        diaCobro = c.val(.diaCobro, d.diaCobro)
+        avisosMin = c.val(.avisosMin, d.avisosMin)
+        umbralExtraHrs = c.val(.umbralExtraHrs, d.umbralExtraHrs)
+        multExtra = c.val(.multExtra, d.multExtra)
+        metaSemanal = c.val(.metaSemanal, d.metaSemanal)
+        mostrarMeta = c.val(.mostrarMeta, d.mostrarMeta)
+        mostrarHoraExtra = c.val(.mostrarHoraExtra, d.mostrarHoraExtra)
+        terminosAceptados = c.val(.terminosAceptados, d.terminosAceptados)
+        dineroOculto = c.val(.dineroOculto, d.dineroOculto)
+        dark = c.val(.dark, d.dark)
+        pin = c.opt(.pin)
+        biometrico = c.val(.biometrico, d.biometrico)
+        formatoHora = c.val(.formatoHora, d.formatoHora)
+        onboardingDone = c.val(.onboardingDone, d.onboardingDone)
+        sonidoAlarma = c.val(.sonidoAlarma, d.sonidoAlarma)
+        posponerMin = c.val(.posponerMin, d.posponerMin)
+        cierreAuto = c.val(.cierreAuto, d.cierreAuto)
+        calendarioSync = c.val(.calendarioSync, d.calendarioSync)
+        avisoCobro = c.val(.avisoCobro, d.avisoCobro)
+    }
 }
 
 /// Documento raíz persistido (JSON en Documents/turniq-v1.json).
+/// Mismo formato que el respaldo de Android (version/exportedAt se
+/// escriben para que Android lo reconozca al importarlo).
 struct TurniqData: Codable {
+    var version: Int = 1
+    var exportedAt: String = ""
     var jobs: [Job] = []
     var shifts: [Shift] = []
     var templates: [ShiftTemplate] = []
     var settings: Settings = Settings()
+}
+
+extension TurniqData {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = c.val(.version, 1)
+        exportedAt = c.val(.exportedAt, "")
+        jobs = c.val(.jobs, [])
+        shifts = c.val(.shifts, [])
+        templates = c.val(.templates, [])
+        settings = c.val(.settings, Settings())
+    }
 }

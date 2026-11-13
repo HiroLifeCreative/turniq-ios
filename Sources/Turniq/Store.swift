@@ -2,22 +2,33 @@ import Foundation
 import SwiftUI
 
 /// Estado global de Turniq iOS. Persiste el MISMO documento JSON
-/// que la app de Android usa internamente (turniq-v1.json), así un
-/// respaldo exportado de una plataforma se puede importar en la otra.
+/// que usa el respaldo de Android, así un respaldo exportado de una
+/// plataforma se puede importar en la otra.
 @MainActor
 final class Store: ObservableObject {
     @Published var data: TurniqData {
-        didSet { save() }
+        didSet {
+            save()
+            scheduleSideEffects()
+        }
     }
 
     private let fileURL: URL
+    private var sideEffects: Task<Void, Never>?
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         fileURL = docs.appendingPathComponent("turniq-v1.json")
-        if let raw = try? Data(contentsOf: fileURL),
-           let decoded = try? JSONDecoder().decode(TurniqData.self, from: raw) {
-            data = decoded
+        if let raw = try? Data(contentsOf: fileURL) {
+            if let decoded = try? JSONDecoder().decode(TurniqData.self, from: raw) {
+                data = decoded
+            } else {
+                // Archivo ilegible: se conserva una copia antes de
+                // empezar de cero, para no perder nada sin remedio.
+                let bak = docs.appendingPathComponent("turniq-v1.corrupto.json")
+                try? raw.write(to: bak, options: [.atomic])
+                data = TurniqData()
+            }
         } else {
             data = TurniqData()
         }
@@ -29,19 +40,40 @@ final class Store: ObservableObject {
         }
     }
 
+    /// Avisos y calendario se rehacen solos tras cada cambio, con una
+    /// pequeña espera para no repetirlo en cada tecla.
+    private func scheduleSideEffects() {
+        sideEffects?.cancel()
+        sideEffects = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            guard let self, !Task.isCancelled else { return }
+            Notifications.reschedule(data: self.data)
+            CalendarSync.syncIfEnabled(data: self.data)
+        }
+    }
+
+    /// Al abrir la app o volver a ella.
+    func refreshOnForeground() {
+        autoCerrarTurnos()
+        scheduleSideEffects()
+    }
+
     // MARK: Accesos
 
     var jobs: [Job] { data.jobs }
     var shifts: [Shift] { data.shifts }
     var settings: Settings { data.settings }
-    var jobsById: [String: Job] { Dictionary(uniqueKeysWithValues: data.jobs.map { ($0.id, $0) }) }
+    var jobsById: [String: Job] {
+        Dictionary(data.jobs.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+    }
 
     func job(id: String) -> Job? { data.jobs.first { $0.id == id } }
+    func shift(id: String) -> Shift? { data.shifts.first { $0.id == id } }
 
     func setSettings(_ mutate: (inout Settings) -> Void) {
         var s = data.settings
         mutate(&s)
-        data.settings = s
+        if s != data.settings { data.settings = s }
     }
 
     // MARK: Trabajos
@@ -55,9 +87,11 @@ final class Store: ObservableObject {
     }
 
     func deleteJob(id: String) {
-        data.jobs.removeAll { $0.id == id }
-        data.shifts.removeAll { $0.jobId == id }
-        data.templates.removeAll { $0.jobId == id }
+        var d = data
+        d.jobs.removeAll { $0.id == id }
+        d.shifts.removeAll { $0.jobId == id }
+        d.templates.removeAll { $0.jobId == id }
+        data = d
     }
 
     // MARK: Turnos
@@ -78,6 +112,7 @@ final class Store: ObservableObject {
         copy.id = UUID().uuidString
         copy.horaEntradaReal = nil
         copy.horaSalidaReal = nil
+        copy.fechaSalidaReal = nil
         copy.gcalEventId = nil
         data.shifts.append(copy)
     }
@@ -87,28 +122,31 @@ final class Store: ObservableObject {
     @discardableResult
     func duplicateWeek(monday: String) -> Int {
         let week = data.shifts.filter { Calc.monday(of: $0.fecha) == monday }
-        var created = 0
+        var copies: [Shift] = []
         for s in week {
             var copy = s
             copy.id = UUID().uuidString
             copy.fecha = Calc.addDays(s.fecha, 7)
+            copy.fechaSalida = s.fechaSalida.map { Calc.addDays($0, 7) }
             copy.horaEntradaReal = nil
             copy.horaSalidaReal = nil
+            copy.fechaSalidaReal = nil
             copy.gcalEventId = nil
-            data.shifts.append(copy)
-            created += 1
+            copies.append(copy)
         }
-        return created
+        if !copies.isEmpty { data.shifts.append(contentsOf: copies) }
+        return copies.count
     }
 
     // MARK: Marcaje (clock in/out)
 
-    /// Turno de hoy con entrada real y sin salida real (sesión abierta)
+    /// Turno con entrada real y sin salida real (sesión abierta).
+    /// Puede ser de ayer si el turno cruza la medianoche.
     var openShift: Shift? {
-        let today = Calc.todayYmd()
-        return data.shifts.first {
-            $0.fecha == today && $0.horaEntradaReal != nil && $0.horaSalidaReal == nil && !$0.esLibre
-        }
+        data.shifts
+            .filter { $0.horaEntradaReal != nil && $0.horaSalidaReal == nil && !$0.esLibre }
+            .sorted { $0.fecha > $1.fecha }
+            .first
     }
 
     func clockIn(shiftId: String) {
@@ -118,22 +156,65 @@ final class Store: ObservableObject {
 
     func clockOut(shiftId: String) {
         guard let i = data.shifts.firstIndex(where: { $0.id == shiftId }) else { return }
-        data.shifts[i].horaSalidaReal = Calc.nowHHMM()
+        var s = data.shifts[i]
+        s.horaSalidaReal = Calc.nowHHMM()
+        s.fechaSalidaReal = Calc.todayYmd()
+        data.shifts[i] = s
+    }
+
+    /// Corrige la hora real de entrada del turno en curso.
+    func setRealEntry(shiftId: String, hm: String) {
+        guard let i = data.shifts.firstIndex(where: { $0.id == shiftId }) else { return }
+        data.shifts[i].horaEntradaReal = hm
+    }
+
+    /// Cierre automático: todo turno con entrada real y sin salida
+    /// real, de un día anterior, se cierra solo al llegar la hora
+    /// tope del día siguiente (4:00 a. m. por defecto). Devuelve
+    /// cuántos cerró.
+    @discardableResult
+    func autoCerrarTurnos() -> Int {
+        let tope = Calc.hmToMin(settings.cierreAuto) == nil ? "04:00" : settings.cierreAuto
+        let now = Date()
+        var d = data
+        var closed = 0
+        for i in d.shifts.indices {
+            let s = d.shifts[i]
+            guard s.horaEntradaReal != nil, s.horaSalidaReal == nil else { continue }
+            let nextDay = Calc.addDays(s.fecha, 1)
+            guard let corte = Calc.date(nextDay, tope), now >= corte else { continue }
+            d.shifts[i].horaSalidaReal = tope
+            d.shifts[i].fechaSalidaReal = nextDay
+            closed += 1
+        }
+        if closed > 0 { data = d }
+        return closed
     }
 
     // MARK: Respaldos
 
-    func exportJSON() -> Data? { try? JSONEncoder().encode(data) }
+    func exportJSON() -> Data? {
+        var d = data
+        d.version = 1
+        d.exportedAt = ISO8601DateFormatter().string(from: Date())
+        let enc = JSONEncoder()
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try? enc.encode(d)
+    }
 
-    /// Importa fusionando (no borra): trabajos por id, turnos por id.
+    /// Importa fusionando (no borra): trabajos, turnos y plantillas
+    /// por id. Vale para respaldos de iOS y de Android.
     func importMerge(_ raw: Data) -> Bool {
-        guard let other = try? JSONDecoder().decode(TurniqData.self, from: raw) else { return false }
-        let jobIds = Set(data.jobs.map { $0.id })
-        data.jobs.append(contentsOf: other.jobs.filter { !jobIds.contains($0.id) })
-        let shiftIds = Set(data.shifts.map { $0.id })
-        data.shifts.append(contentsOf: other.shifts.filter { !shiftIds.contains($0.id) })
-        let tplIds = Set(data.templates.map { $0.id })
-        data.templates.append(contentsOf: other.templates.filter { !tplIds.contains($0.id) })
+        guard let other = try? JSONDecoder().decode(TurniqData.self, from: raw),
+              !(other.jobs.isEmpty && other.shifts.isEmpty && other.templates.isEmpty) else { return false }
+        var d = data
+        let jobIds = Set(d.jobs.map { $0.id })
+        d.jobs.append(contentsOf: other.jobs.filter { !jobIds.contains($0.id) })
+        let shiftIds = Set(d.shifts.map { $0.id })
+        d.shifts.append(contentsOf: other.shifts.filter { !shiftIds.contains($0.id) })
+        let tplIds = Set(d.templates.map { $0.id })
+        d.templates.append(contentsOf: other.templates.filter { !tplIds.contains($0.id) })
+        data = d
         return true
     }
 

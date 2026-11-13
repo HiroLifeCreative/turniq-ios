@@ -12,24 +12,58 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1, 22 oct 2026)
+## Estado (v1.1.0, 13 nov 2026)
 
-Diseño igualado con Android: dock flotante de vidrio solo-íconos
-con cápsula azul animada, banda superior oscura + hoja blanca
-redondeada (radio 28), engranaje que abre Más, tipografía Roboto
-bundleada (registro en tiempo de ejecución) y JetBrains Mono en
-las etiquetas. Sintaxis verificada con swiftc 6.1.2 (parse).
+**Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
+Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
+`Info.plist` (fusionado con `infoPath`) trae el nombre, la versión y
+los textos de permiso de Face ID y Calendario.
 
-Incluye: Inicio (héroe de neto trabajado, marcar entrada/salida,
-próximo turno con su PIN), Semana (navegación, tarjeta de hora
-extra por trabajo, duplicar semana), Trabajos (CRUD con estaciones
-y PIN de reloj), Ganancias (trabajado vs programado, por trabajo,
-totales del mes), Más/Ajustes (PIN de la app + Face ID, horas
-extra, meta, exportar/importar respaldo), avisos por notificación
-local.
+**Diseño igualado con Android** (mismos tokens de `src/theme/tokens.ts`):
+banda oscura con el título de cada pantalla y el engranaje, hoja
+redondeada (radio 28), dock flotante de vidrio con píldora azul y
+rebote del ícono, tarjetas claras con degradado/borde/sombra y
+tarjetas oscuras teñidas, modo claro y oscuro.
 
-Pendiente (fase 2): sincronización con Google Calendar/Gmail,
-pantalla de Plantillas, reportes PDF/CSV, calendario mensual.
+- **Inicio:** héroe de neto trabajado con ojito (ocultar dinero),
+  píldora de estado, reloj en vivo con anillo y neto estimado, chips
+  de horas/bruto/taxes, marcar entrada/salida, editar entrada, tarjeta
+  de recordatorio con cuenta atrás y PIN, próximos cobros, próximos
+  turnos.
+- **Semana:** columna del día, tarjetas con barra de estado (en curso,
+  no marcado, próximamente, pasado), aviso de traslape, hora extra por
+  trabajo, total semanal, duplicar semana.
+- **Trabajos:** tarjetas con Editar/Eliminar, estaciones, PIN del
+  reloj y **Cobro** (cada semana o cada 2 semanas).
+- **Ganancias:** trabajado vs programado, meta semanal, próximos
+  cobros, totales del mes, por año, por trabajo.
+- **Más:** Ajustes, Calendario del iPhone, Novedades.
+
+**Funciones propias de iOS**
+
+- **Cobro por trabajo** (`PaySchedule.swift`): cada trabajo paga
+  `semanal` o `quincenal` (cada 14 días desde una fecha de cobro
+  conocida). Un cobro paga las semanas lun–dom completas que
+  terminaron antes de la semana del día de cobro. Campos nuevos y
+  opcionales en `Job`: `pagoFrecuencia`, `pagoDia`, `pagoAncla` (un
+  respaldo con ellos se importa en Android sin problema; Android
+  todavía no los muestra).
+- **Calendario del iPhone** (`CalendarSync.swift`, EventKit): turnos y
+  días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
+  adelante; se actualiza solo con cada cambio.
+- **Aviso del día de cobro** a las 9:00 a. m.
+
+**Datos:** lectura tolerante (campos que falten toman su valor por
+defecto), horas reales y fechas de salida explícitas como Android,
+cierre automático de turnos abiertos, respaldo JSON en el formato de
+Android (`version`, `exportedAt`).
+
+**Verificación:** sintaxis comprobada con un parser de Swift en los
+18 archivos. Falta la primera compilación real con `xtool dev`.
+
+Pendiente: Widgets y Actividad en Vivo (requieren una extensión en
+`xtool.yml` y un App Group), Plantillas, reportes PDF/CSV, calendario
+mensual, Estadísticas, inglés.
 
 **Nota iOS:** Apple no permite alarmas a pantalla completa de
 terceros; los avisos son notificaciones con sonido.

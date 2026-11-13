@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Turniq</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>es</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Turniq usa Face ID para desbloquear la app sin escribir tu PIN.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Turniq guarda tus turnos y días de cobro en un calendario propio llamado «Turniq» dentro de tu app Calendario.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Turniq guarda tus turnos y días de cobro en un calendario propio llamado «Turniq» dentro de tu app Calendario.</string>
+</dict>
+</plist>

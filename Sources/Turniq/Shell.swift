@@ -1,15 +1,15 @@
 import SwiftUI
 
 /// La cáscara visual de Turniq, igual que en Android:
-/// banda superior OSCURA casi negra con el wordmark y el engranaje
-/// (que abre Más), el contenido sobre una HOJA BLANCA redondeada
-/// (radio 28 arriba), y abajo el DOCK FLOTANTE de vidrio con
-/// íconos solos y la pestaña activa como cápsula azul sólida.
+/// banda superior OSCURA con el título de la pantalla y el engranaje
+/// (que abre Más), el contenido sobre una HOJA redondeada (radio 28
+/// arriba), y abajo el DOCK FLOTANTE de vidrio con íconos solos y la
+/// pestaña activa como píldora azul sólida.
 struct TurniqShell: View {
     @EnvironmentObject var store: Store
     @State private var tab = 0
     @State private var showMas = false
-    @Namespace private var dockNS
+    @State private var taps: [Int] = [0, 0, 0, 0]
 
     private let tabs: [(icon: String, label: String)] = [
         ("house.fill", "Inicio"),
@@ -17,6 +17,14 @@ struct TurniqShell: View {
         ("briefcase.fill", "Trabajos"),
         ("chart.bar.fill", "Ganancias"),
     ]
+
+    private var title: String {
+        if tab == 0 {
+            let first = store.settings.nombreUsuario.split(separator: " ").first.map(String.init) ?? ""
+            return first.isEmpty ? "Hola" : "Hola, \(first)"
+        }
+        return tabs[tab].label
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -29,82 +37,92 @@ struct TurniqShell: View {
         }
         .background(T.band.ignoresSafeArea())
         .font(.turniq(15))
-        .sensoryFeedback(.impact(weight: .light), trigger: tab)
+        .sensoryFeedback(.selection, trigger: tab)
         .sheet(isPresented: $showMas) {
-            SettingsView()
+            MasView()
         }
     }
 
     private var header: some View {
         HStack {
-            HStack(spacing: 0) {
-                Text("Turniq").foregroundStyle(.white)
-                Text(".").foregroundStyle(T.button)
-            }
-            .font(.turniq(22, .bold))
+            Text(title)
+                .font(.turniq(21, .bold))
+                .tracking(-0.4)
+                .foregroundStyle(.white)
+                .lineLimit(1)
             Spacer()
             Button { showMas = true } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 19, weight: .semibold))
+                Image(systemName: "gearshape")
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(.white.opacity(0.08), in: Circle())
+                    .frame(width: 44, height: 44)
+                    .background(.white.opacity(0.12), in: Circle())
+                    .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1))
             }
+            .buttonStyle(PressStyle())
             .accessibilityLabel("Más")
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 14)
+        .frame(height: 60)
+        .padding(.horizontal, 16)
     }
 
     private var sheet: some View {
         Group {
             switch tab {
-            case 0: HomeView()
+            case 0: HomeView(goTab: { tab = $0 })
             case 1: WeekView()
             case 2: JobsView()
             default: EarningsView()
             }
         }
-        .padding(.bottom, 84) // espacio para el dock flotante
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous)
-                .fill(Color(.systemBackground))
-                .ignoresSafeArea(edges: .bottom)
-        }
-        .clipped()
+        .background(T.bg)
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28, style: .continuous))
+        .ignoresSafeArea(edges: .bottom)
     }
 
+    /// Dock de vidrio: inactivas de 48 pt, la activa es una píldora
+    /// azul de 58 pt que crece con resorte. Cada ícono rebota al
+    /// tocarlo, también si la pestaña ya estaba activa.
     private var dock: some View {
-        HStack(spacing: 4) {
-            ForEach(Array(tabs.enumerated()), id: \.offset) { i, t in
+        HStack(spacing: 12) {
+            ForEach(tabs.indices, id: \.self) { i in
+                let active = tab == i
                 Button {
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { tab = i }
+                    taps[i] += 1
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) { tab = i }
                 } label: {
-                    Image(systemName: t.icon)
+                    Image(systemName: tabs[i].icon)
                         .font(.system(size: 21, weight: .semibold))
-                        .foregroundStyle(tab == i ? T.buttonText : Color.secondary)
-                        .frame(width: 52, height: 46)
+                        .symbolEffect(.bounce, value: taps[i])
+                        .foregroundStyle(active ? T.buttonText : T.text3)
+                        .frame(width: active ? 58 : 48, height: 48)
                         .background {
-                            if tab == i {
+                            if active {
                                 Capsule()
                                     .fill(T.button)
-                                    .matchedGeometryEffect(id: "dockPill", in: dockNS)
+                                    .shadow(color: T.button.opacity(0.38), radius: 8, y: 3)
                             }
                         }
+                        .contentShape(Capsule())
                 }
-                .accessibilityLabel(t.label)
+                .buttonStyle(.plain)
+                .accessibilityLabel(tabs[i].label)
+                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
-        .padding(5)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
         .background {
             Capsule()
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.18), radius: 16, y: 6)
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
         }
         .overlay {
             Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 0.5)
         }
     }
 }
+
+/// Espacio al final de cada lista para que el dock no tape nada.
+let dockClearance: CGFloat = 110
