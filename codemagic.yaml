@@ -1,0 +1,30 @@
+# Compila Turniq iOS (SwiftUI/SwiftPM) con xtool en una Mac de
+# Codemagic y deja el IPA SIN FIRMAR como artefacto. La firma se hace
+# al instalar desde WSL:  xtool install Turniq.ipa
+workflows:
+  ios-ipa:
+    name: Turniq iOS IPA (xtool, sin firmar)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+    scripts:
+      - name: Versiones
+        script: |
+          xcodebuild -version
+          swift --version
+      - name: Instalar xtool
+        script: |
+          brew install xtool-org/tap/xtool
+      - name: Compilar IPA
+        script: |
+          set -o pipefail
+          xtool dev build --ipa --configuration release 2>&1 | tee build.log
+      - name: Localizar IPA
+        script: |
+          IPA=$(find . -name '*.ipa' | head -1)
+          echo "IPA: $IPA"
+          mkdir -p out && cp "$IPA" out/Turniq.ipa
+    artifacts:
+      - out/Turniq.ipa
+      - build.log
