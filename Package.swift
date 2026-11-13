@@ -14,13 +14,15 @@ let package = Package(
         .iOS(.v17)
     ],
     products: [
-        .executable(
+        // xtool empaqueta la app a partir de un producto de tipo
+        // LIBRERÍA (no ejecutable); el @main vive en TurniqApp.swift.
+        .library(
             name: "Turniq",
             targets: ["Turniq"]
         )
     ],
     targets: [
-        .executableTarget(
+        .target(
             name: "Turniq",
             path: "Sources/Turniq",
             resources: [

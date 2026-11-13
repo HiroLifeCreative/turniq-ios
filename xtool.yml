@@ -8,6 +8,7 @@
 # y se puede distribuir por TestFlight sin cables.
 version: 1
 bundleID: com.hirolifecreative.turniq
+product: Turniq
 # Ícono del Home (1024×1024, sin transparencia — el mismo de Android)
 iconPath: Assets/AppIcon.png
 # Claves extra de Info.plist (nombre, versión, permisos de Face ID y
