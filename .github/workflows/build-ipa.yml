@@ -1,0 +1,30 @@
+name: Build Turniq IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/build-ipa]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xtool
+        run: |
+          curl -fL https://github.com/xtool-org/xtool/releases/download/1.24.0/xtool.app.zip -o "$RUNNER_TEMP/xtool.zip"
+          ditto -xk "$RUNNER_TEMP/xtool.zip" "$RUNNER_TEMP/xtool"
+          find "$RUNNER_TEMP/xtool" -type f -name xtool -perm +111 -print
+          echo "$RUNNER_TEMP/xtool/xtool.app/Contents/MacOS" >> "$GITHUB_PATH"
+      - name: Build unsigned IPA
+        run: xtool dev build --configuration release --ipa
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Turniq-unsigned
+          path: xtool/*.ipa
+          if-no-files-found: error
