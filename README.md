@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.1.0, 13 nov 2026)
+## Estado (v1.2.0, 13 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -55,16 +55,43 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
 
+**Nuevo en 1.2.0**
+
+- **Widgets** (`Sources/TurniqWidget`, extensión declarada en
+  `xtool.yml`): Home pequeño/mediano y pantalla de bloqueo, con el
+  próximo turno y su PIN, el neto de la semana y el próximo cobro.
+  La app escribe una foto de datos (`WidgetSnapshot`, en
+  `Sources/TurniqShared`) en la carpeta del grupo de apps
+  (`Turniq.entitlements`); el id del grupo se calcula al vuelo como
+  `group.` + id de la app porque xtool le antepone su prefijo al
+  firmar. Si la app se firma sin el grupo, todo sigue funcionando y
+  el widget muestra «Abre Turniq».
+- **Actividad en Vivo / Dynamic Island** (`ShiftLiveActivity.swift`,
+  `LiveShift`): contador del turno en curso, barra hacia la salida
+  programada, neto por hora y PIN. Se inicia al marcar entrada.
+- **Atajos, Siri y Botón de Acción** con enlaces: `turniq://marcar`,
+  `turniq://entrada`, `turniq://salida` (acción «Abrir URL» en la app
+  Atajos; instrucciones en Más → Atajos, Siri y Widgets). No usa App
+  Intents porque xtool no genera sus metadatos.
+- **Aviso al llegar al trabajo** (`Arrival.swift`): cada trabajo puede
+  guardar su ubicación; con turno pendiente, una notificación por
+  zona ofrece «Marcar entrada».
+- **Respaldo automático** diario en Documentos/Respaldos (visible en
+  Archivos; últimas 14 copias).
+
+No disponible con xtool o con firma gratuita: app de Apple Watch
+(xtool solo empaqueta iOS) y sincronización por iCloud (requiere el
+Apple Developer Program).
+
 **Datos:** lectura tolerante (campos que falten toman su valor por
 defecto), horas reales y fechas de salida explícitas como Android,
 cierre automático de turnos abiertos, respaldo JSON en el formato de
 Android (`version`, `exportedAt`).
 
 **Verificación:** sintaxis comprobada con un parser de Swift en los
-18 archivos. Falta la primera compilación real con `xtool dev`.
+todos los archivos. Falta la primera compilación real con `xtool dev`.
 
-Pendiente: Widgets y Actividad en Vivo (requieren una extensión en
-`xtool.yml` y un App Group), Plantillas, reportes PDF/CSV, calendario
+Pendiente: Plantillas, reportes PDF/CSV, calendario
 mensual, Estadísticas, inglés.
 
 **Nota iOS:** Apple no permite alarmas a pantalla completa de

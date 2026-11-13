@@ -55,6 +55,12 @@ struct Job: Codable, Identifiable, Equatable {
     /// cobro el viernes 20). nil = 1.
     var pagoRetraso: Int?
 
+    // MARK: Aviso al llegar
+    /// Ubicación del trabajo (grados). Con ella Turniq avisa al
+    /// llegar para marcar la entrada. nil = sin aviso.
+    var lat: Double?
+    var lon: Double?
+
     // Misma paleta que Android (JOB_COLORS).
     static let palette: [String] = [
         "#0064E0", "#7C3AED", "#0E7C3E", "#D97706",
@@ -76,6 +82,8 @@ extension Job {
         pagoDia = c.opt(.pagoDia)
         pagoAncla = c.opt(.pagoAncla)
         pagoRetraso = c.opt(.pagoRetraso)
+        lat = c.opt(.lat)
+        lon = c.opt(.lon)
     }
 }
 
@@ -187,6 +195,10 @@ struct Settings: Codable, Equatable {
     var calendarioSync: Bool = false
     /// Aviso la mañana del día de cobro
     var avisoCobro: Bool = true
+    /// Actividad en Vivo (pantalla de bloqueo / Dynamic Island)
+    var actividadEnVivo: Bool = true
+    /// Aviso al llegar a un trabajo con ubicación guardada
+    var avisoLlegada: Bool = true
 }
 
 extension Settings {
@@ -214,6 +226,8 @@ extension Settings {
         cierreAuto = c.val(.cierreAuto, d.cierreAuto)
         calendarioSync = c.val(.calendarioSync, d.calendarioSync)
         avisoCobro = c.val(.avisoCobro, d.avisoCobro)
+        actividadEnVivo = c.val(.actividadEnVivo, d.actividadEnVivo)
+        avisoLlegada = c.val(.avisoLlegada, d.avisoLlegada)
     }
 }
 

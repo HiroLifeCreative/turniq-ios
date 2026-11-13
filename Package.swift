@@ -19,11 +19,27 @@ let package = Package(
         .library(
             name: "Turniq",
             targets: ["Turniq"]
-        )
+        ),
+        // Extensión de Widgets + Actividad en Vivo (ver xtool.yml).
+        .library(
+            name: "TurniqWidget",
+            targets: ["TurniqWidget"]
+        ),
     ],
     targets: [
+        // Tipos que comparten la app y la extensión.
+        .target(
+            name: "TurniqShared",
+            path: "Sources/TurniqShared"
+        ),
+        .target(
+            name: "TurniqWidget",
+            dependencies: ["TurniqShared"],
+            path: "Sources/TurniqWidget"
+        ),
         .target(
             name: "Turniq",
+            dependencies: ["TurniqShared"],
             path: "Sources/Turniq",
             resources: [
                 .process("Resources")

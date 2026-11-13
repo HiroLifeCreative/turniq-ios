@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import CoreLocation
 
 /// Avisos locales (iOS): recordatorio antes de cada turno y aviso la
 /// mañana del día de cobro de cada trabajo. En iOS NO existe la
@@ -51,7 +52,36 @@ enum Notifications {
             add(center, id: p.id, title: p.title, body: p.body, fire: p.fire)
         }
 
-        // 2. Aviso del día de cobro (9:00 a. m.), los 2 próximos de
+        // 2. Aviso al llegar al trabajo: solo para trabajos con
+        //    ubicación guardada y algún turno pendiente (hoy o después).
+        if settings.avisoLlegada {
+            let today = Calc.todayYmd()
+            for job in data.jobs {
+                guard let lat = job.lat, let lon = job.lon else { continue }
+                let hasShift = data.shifts.contains {
+                    $0.jobId == job.id && !$0.esLibre && $0.fecha >= today && $0.horaEntradaReal == nil
+                }
+                guard hasShift else { continue }
+                let region = CLCircularRegion(
+                    center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    radius: 150, identifier: "turniq-llegada-\(job.id)")
+                region.notifyOnEntry = true
+                region.notifyOnExit = false
+                let content = UNMutableNotificationContent()
+                content.title = "¿Llegaste a \(job.nombre)?"
+                var body = "Toca «Marcar entrada» para empezar tu turno."
+                if let pin = job.pinMarcaje, !pin.isEmpty { body += " PIN del reloj: \(pin)." }
+                content.body = body
+                content.sound = .default
+                content.categoryIdentifier = NotificationDelegate.arriveCategory
+                content.userInfo = ["jobId": job.id]
+                let trigger = UNLocationNotificationTrigger(region: region, repeats: true)
+                center.add(UNNotificationRequest(identifier: "turniq-llegada-\(job.id)",
+                                                 content: content, trigger: trigger))
+            }
+        }
+
+        // 3. Aviso del día de cobro (9:00 a. m.), los 2 próximos de
         //    cada trabajo. El monto solo se dice si ya es definitivo.
         guard settings.avisoCobro else { return }
         for job in data.jobs {

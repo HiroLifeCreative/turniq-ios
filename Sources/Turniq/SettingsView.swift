@@ -99,6 +99,8 @@ struct SettingsView: View {
                         }
                     ))
                 }
+                Toggle("Avisar al llegar al trabajo", isOn: bind(\.avisoLlegada))
+                Toggle("Actividad en Vivo al marcar entrada", isOn: bind(\.actividadEnVivo))
             } header: {
                 Text("Avisos de turno")
             } footer: {
@@ -136,7 +138,7 @@ struct SettingsView: View {
             } header: {
                 Text("Datos")
             } footer: {
-                Text("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra.")
+                Text("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone.")
             }
         }
         .navigationTitle("Ajustes")

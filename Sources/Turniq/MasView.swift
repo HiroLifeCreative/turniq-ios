@@ -6,16 +6,17 @@ import UIKit
 struct MasView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private enum Dest: Hashable { case settings, calendar, changelog }
+    private enum Dest: Hashable { case settings, calendar, shortcuts, changelog }
 
     private let items: [(dest: Dest, icon: String, label: String)] = [
         (.settings, "gearshape", "Ajustes"),
         (.calendar, "calendar", "Calendario del iPhone"),
+        (.shortcuts, "bolt.circle", "Atajos, Siri y Widgets"),
         (.changelog, "sparkles", "Novedades"),
     ]
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.1.0"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.2.0"
     }
 
     var body: some View {
@@ -76,6 +77,7 @@ struct MasView: View {
                 switch d {
                 case .settings: SettingsView()
                 case .calendar: CalendarSyncView()
+                case .shortcuts: ShortcutsHelpView()
                 case .changelog: ChangelogView()
                 }
             }
@@ -87,6 +89,13 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.2.0", "2026-11-13", [
+            "Widgets para la pantalla de inicio y la pantalla de bloqueo: próximo turno con su PIN, neto de la semana y próximo cobro.",
+            "Actividad en Vivo: contador del turno en curso en la pantalla de bloqueo y en la Dynamic Island.",
+            "Enlaces para Atajos, Siri y el Botón de Acción: marcar entrada y salida sin buscar la app.",
+            "Aviso al llegar al trabajo, con botón para marcar la entrada.",
+            "Respaldo automático diario en la app Archivos.",
+        ]),
         ("1.1.0", "2026-11-13", [
             "Ícono de la app en la pantalla de inicio del iPhone.",
             "Cobro por trabajo: cada empleo se configura para pagar cada semana o cada 2 semanas, con su día de cobro y su espera (la semana siguiente o 2 semanas después de trabajar).",
@@ -132,6 +141,73 @@ struct ChangelogView: View {
         .background(T.bg)
         .navigationTitle("Novedades")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Cómo usar los enlaces turniq:// con Atajos, Siri y el Botón de
+/// Acción, y cómo añadir los widgets.
+struct ShortcutsHelpView: View {
+    private let links: [(url: String, what: String)] = [
+        ("turniq://marcar", "Marca entrada si no estás trabajando, o salida si ya tienes un turno en curso."),
+        ("turniq://entrada", "Marca la entrada del turno de hoy más cercano a la hora actual."),
+        ("turniq://salida", "Marca la salida del turno en curso."),
+    ]
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(links, id: \.url) { l in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(l.url)
+                            .font(.system(.body, design: .monospaced).bold())
+                            .foregroundStyle(T.primary)
+                            .textSelection(.enabled)
+                        Text(l.what).font(.footnote).foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                }
+            } header: {
+                Text("Enlaces de Turniq")
+            } footer: {
+                Text("Mantén pulsado un enlace para copiarlo.")
+            }
+
+            Section("Crear el atajo (una sola vez)") {
+                step(1, "Abre la app Atajos y toca + para crear uno nuevo.")
+                step(2, "Añade la acción «Abrir URL» y pega turniq://marcar.")
+                step(3, "Ponle un nombre fácil de decir, por ejemplo «Marcar turno».")
+            }
+
+            Section("Usarlo") {
+                step(1, "Siri: di «Oye Siri, Marcar turno».")
+                step(2, "Botón de Acción: Ajustes → Botón de Acción → Atajo → elige tu atajo.")
+                step(3, "Pantalla de inicio: en el atajo, Compartir → Añadir a pantalla de inicio.")
+            }
+
+            Section {
+                step(1, "Mantén pulsada la pantalla de inicio y toca Editar → Añadir widget.")
+                step(2, "Busca Turniq y elige el tamaño pequeño o mediano.")
+                step(3, "Para la pantalla de bloqueo: mantenla pulsada → Personalizar → Añadir widgets → Turniq.")
+            } header: {
+                Text("Widgets")
+            } footer: {
+                Text("Los widgets muestran tu próximo turno con su PIN, el neto de la semana y tu próximo cobro. Se actualizan cada vez que abres Turniq o cambias un turno. La Actividad en Vivo aparece sola al marcar entrada.")
+            }
+        }
+        .navigationTitle("Atajos, Siri y Widgets")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func step(_ n: Int, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text("\(n)")
+                .font(.footnote.bold())
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(T.button, in: Circle())
+            Text(text).font(.subheadline)
+        }
+        .padding(.vertical, 2)
     }
 }
 

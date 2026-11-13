@@ -94,6 +94,9 @@ struct JobFormView: View {
     @State private var payDay = 4
     @State private var anchor = Date()
     @State private var lag = 1
+    @State private var lat: Double? = nil
+    @State private var lon: Double? = nil
+    @StateObject private var locator = LocationOnce()
     @State private var loaded = false
 
     /// El trabajo tal como quedaría, para la vista previa del cobro.
@@ -111,7 +114,9 @@ struct JobFormView: View {
             pagoFrecuencia: freq.rawValue,
             pagoDia: freq == .semanal ? payDay : Calc.weekdayIndex(ancla),
             pagoAncla: freq == .quincenal ? ancla : nil,
-            pagoRetraso: lag
+            pagoRetraso: lag,
+            lat: lat,
+            lon: lon
         )
     }
 
@@ -182,6 +187,35 @@ struct JobFormView: View {
                 }
 
                 Section {
+                    if lat != nil {
+                        Label("Ubicación del trabajo guardada", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(T.success)
+                        Button("Actualizar con mi ubicación actual") { askLocation() }
+                        Button("Quitar ubicación", role: .destructive) {
+                            lat = nil
+                            lon = nil
+                        }
+                    } else {
+                        Button { askLocation() } label: {
+                            Label("Usar mi ubicación actual", systemImage: "location.fill")
+                        }
+                    }
+                    if locator.busy {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Buscando tu ubicación…").font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                    if let status = locator.status, lat == nil {
+                        Text(status).font(.footnote).foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Aviso al llegar")
+                } footer: {
+                    Text("Tócalo estando en el trabajo. Los días que tengas turno ahí, Turniq te avisa al llegar para que marques la entrada.")
+                }
+
+                Section {
                     TextField("Ej. 2001", text: $pinReloj)
                         .keyboardType(.numberPad)
                 } header: {
@@ -234,6 +268,8 @@ struct JobFormView: View {
             estaciones = e.estaciones
             freq = Pay.freq(e)
             lag = Pay.lag(e)
+            lat = e.lat
+            lon = e.lon
             payDay = Pay.weekday(e, settings: store.settings)
             let next = Pay.nextPayday(e, settings: store.settings, from: today)
             anchor = Calc.parseDay(e.pagoAncla ?? next) ?? Date()
@@ -242,6 +278,13 @@ struct JobFormView: View {
             payDay = min(6, max(0, store.settings.diaCobro))
             let delta = ((payDay - Calc.weekdayIndex(today)) + 7) % 7
             anchor = Calc.parseDay(Calc.addDays(today, delta)) ?? Date()
+        }
+    }
+
+    private func askLocation() {
+        locator.request { c in
+            lat = c.latitude
+            lon = c.longitude
         }
     }
 

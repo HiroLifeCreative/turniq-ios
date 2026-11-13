@@ -14,3 +14,10 @@ iconPath: Assets/AppIcon.png
 # Claves extra de Info.plist (nombre, versión, permisos de Face ID y
 # Calendario). xtool las fusiona sobre las que genera por defecto.
 infoPath: Info.plist
+# Grupo de apps: la carpeta que comparten la app y el widget.
+entitlementsPath: Turniq.entitlements
+# Extensión de Widgets (Home, pantalla de bloqueo y Actividad en Vivo)
+extensions:
+  - product: TurniqWidget
+    infoPath: TurniqWidget-Info.plist
+    entitlementsPath: Turniq.entitlements

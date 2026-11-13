@@ -6,6 +6,9 @@ import SwiftUI
 /// plataforma se puede importar en la otra.
 @MainActor
 final class Store: ObservableObject {
+    /// Instancia única: también la usan las notificaciones.
+    static let shared = Store()
+
     @Published var data: TurniqData {
         didSet {
             save()
@@ -14,11 +17,13 @@ final class Store: ObservableObject {
     }
 
     private let fileURL: URL
+    private let backupsURL: URL
     private var sideEffects: Task<Void, Never>?
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         fileURL = docs.appendingPathComponent("turniq-v1.json")
+        backupsURL = docs.appendingPathComponent("Respaldos", isDirectory: true)
         if let raw = try? Data(contentsOf: fileURL) {
             if let decoded = try? JSONDecoder().decode(TurniqData.self, from: raw) {
                 data = decoded
@@ -49,13 +54,34 @@ final class Store: ObservableObject {
             guard let self, !Task.isCancelled else { return }
             Notifications.reschedule(data: self.data)
             CalendarSync.syncIfEnabled(data: self.data)
+            WidgetBridge.update(data: self.data)
+            LiveShift.sync(data: self.data)
         }
     }
 
     /// Al abrir la app o volver a ella.
     func refreshOnForeground() {
         autoCerrarTurnos()
+        autoBackup()
         scheduleSideEffects()
+    }
+
+    /// Respaldo automático: una copia por día en Documentos/Respaldos
+    /// (visible en la app Archivos y dentro de la copia de iCloud del
+    /// iPhone). Se guardan las últimas 14.
+    private func autoBackup() {
+        guard !(data.jobs.isEmpty && data.shifts.isEmpty) else { return }
+        let fm = FileManager.default
+        try? fm.createDirectory(at: backupsURL, withIntermediateDirectories: true)
+        let file = backupsURL.appendingPathComponent("turniq-backup-\(Calc.todayYmd()).json")
+        guard !fm.fileExists(atPath: file.path), let raw = exportJSON() else { return }
+        try? raw.write(to: file, options: [.atomic])
+        let names = ((try? fm.contentsOfDirectory(atPath: backupsURL.path)) ?? [])
+            .filter { $0.hasPrefix("turniq-backup-") && $0.hasSuffix(".json") }
+            .sorted()
+        for old in names.dropLast(14) {
+            try? fm.removeItem(at: backupsURL.appendingPathComponent(old))
+        }
     }
 
     // MARK: Accesos
@@ -160,6 +186,58 @@ final class Store: ObservableObject {
         s.horaSalidaReal = Calc.nowHHMM()
         s.fechaSalidaReal = Calc.todayYmd()
         data.shifts[i] = s
+    }
+
+    /// Turno de hoy sin marcar más cercano a la hora actual
+    /// (opcionalmente de un trabajo concreto).
+    private func pendingShiftNow(jobId: String? = nil) -> Shift? {
+        let today = Calc.todayYmd()
+        let now = Calc.hmToMin(Calc.nowHHMM()) ?? 0
+        return data.shifts
+            .filter {
+                $0.fecha == today && !$0.esLibre && $0.horaEntradaReal == nil
+                    && (jobId == nil || $0.jobId == jobId)
+            }
+            .min { a, b in
+                abs((Calc.hmToMin(a.horaEntrada) ?? 0) - now) < abs((Calc.hmToMin(b.horaEntrada) ?? 0) - now)
+            }
+    }
+
+    /// Botón "Marcar entrada" del aviso de llegada al trabajo.
+    func clockInArrival(jobId: String) {
+        guard openShift == nil, let s = pendingShiftNow(jobId: jobId) else { return }
+        clockIn(shiftId: s.id)
+    }
+
+    /// Enlaces turniq:// (Atajos, Siri, Botón de Acción, widgets):
+    ///   turniq://entrada · turniq://salida · turniq://marcar
+    /// "marcar" alterna: entrada si no hay turno abierto, salida si lo
+    /// hay. Devuelve el mensaje a mostrar, o nil si solo abre la app.
+    func handleURL(_ url: URL) -> String? {
+        guard url.scheme?.lowercased() == "turniq" else { return nil }
+        let raw = url.host ?? url.path.replacingOccurrences(of: "/", with: "")
+        var action = raw.lowercased()
+        if action == "marcar" { action = openShift == nil ? "entrada" : "salida" }
+        let fmt12 = settings.formatoHora == "12h"
+        let hora = Calc.fmtTime(Calc.nowHHMM(), format12: fmt12)
+        switch action {
+        case "entrada":
+            if let open = openShift {
+                return "Ya tienes un turno en curso en \(job(id: open.jobId)?.nombre ?? "tu trabajo")."
+            }
+            guard let s = pendingShiftNow() else { return "No tienes turnos pendientes para hoy." }
+            clockIn(shiftId: s.id)
+            let j = job(id: s.jobId)
+            var msg = "Entrada marcada en \(j?.nombre ?? "tu trabajo") a las \(hora)."
+            if let pin = j?.pinMarcaje, !pin.isEmpty { msg += " PIN del reloj: \(pin)." }
+            return msg
+        case "salida":
+            guard let open = openShift else { return "No hay ningún turno en curso." }
+            clockOut(shiftId: open.id)
+            return "Salida marcada en \(job(id: open.jobId)?.nombre ?? "tu trabajo") a las \(hora)."
+        default:
+            return nil
+        }
     }
 
     /// Corrige la hora real de entrada del turno en curso.
