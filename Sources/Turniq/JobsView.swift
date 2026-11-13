@@ -93,6 +93,7 @@ struct JobFormView: View {
     @State private var freq: PayFreq = .semanal
     @State private var payDay = 4
     @State private var anchor = Date()
+    @State private var lag = 1
     @State private var loaded = false
 
     /// El trabajo tal como quedaría, para la vista previa del cobro.
@@ -109,7 +110,8 @@ struct JobFormView: View {
             pinMarcaje: pin.isEmpty ? nil : pin,
             pagoFrecuencia: freq.rawValue,
             pagoDia: freq == .semanal ? payDay : Calc.weekdayIndex(ancla),
-            pagoAncla: freq == .quincenal ? ancla : nil
+            pagoAncla: freq == .quincenal ? ancla : nil,
+            pagoRetraso: lag
         )
     }
 
@@ -117,7 +119,7 @@ struct JobFormView: View {
         let j = draft
         let next = Pay.nextPayday(j, settings: store.settings, from: Calc.todayYmd())
         let p = Pay.period(j, payday: next)
-        return "Próximo cobro: \(Calc.weekdayDate(next)). Te paga lo trabajado del \(Calc.shortDate(p.start)) al \(Calc.shortDate(p.end))."
+        return "Próximo cobro: \(Calc.weekdayDate(next)). Ese día te pagan lo trabajado del \(Calc.shortDate(p.start)) al \(Calc.shortDate(p.end)). Si no coincide con tu cheque, cambia «Cobro después de trabajar»."
     }
 
     var body: some View {
@@ -165,6 +167,11 @@ struct JobFormView: View {
                         }
                     } else {
                         DatePicker("Un día de cobro", selection: $anchor, displayedComponents: [.date])
+                    }
+                    Picker("Cobro después de trabajar", selection: $lag) {
+                        ForEach(1...3, id: \.self) { w in
+                            Text(Pay.lagLabel(w)).tag(w)
+                        }
                     }
                 } header: {
                     Text("Cobro")
@@ -226,6 +233,7 @@ struct JobFormView: View {
             pinReloj = e.pinMarcaje ?? ""
             estaciones = e.estaciones
             freq = Pay.freq(e)
+            lag = Pay.lag(e)
             payDay = Pay.weekday(e, settings: store.settings)
             let next = Pay.nextPayday(e, settings: store.settings, from: today)
             anchor = Calc.parseDay(e.pagoAncla ?? next) ?? Date()

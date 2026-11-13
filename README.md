@@ -43,9 +43,11 @@ tarjetas oscuras teñidas, modo claro y oscuro.
 
 - **Cobro por trabajo** (`PaySchedule.swift`): cada trabajo paga
   `semanal` o `quincenal` (cada 14 días desde una fecha de cobro
-  conocida). Un cobro paga las semanas lun–dom completas que
-  terminaron antes de la semana del día de cobro. Campos nuevos y
-  opcionales en `Job`: `pagoFrecuencia`, `pagoDia`, `pagoAncla` (un
+  conocida) y tiene su espera `pagoRetraso`: 1 = se cobra en la
+  semana siguiente (trabajo 2–8 nov → viernes 13), 2 = pasan 2
+  semanas (2–8 nov → viernes 20). El periodo pagado siempre son
+  semanas lun–dom completas. Campos nuevos y opcionales en `Job`:
+  `pagoFrecuencia`, `pagoDia`, `pagoAncla`, `pagoRetraso` (un
   respaldo con ellos se importa en Android sin problema; Android
   todavía no los muestra).
 - **Calendario del iPhone** (`CalendarSync.swift`, EventKit): turnos y

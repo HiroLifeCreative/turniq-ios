@@ -49,6 +49,11 @@ struct Job: Codable, Identifiable, Equatable {
     /// Solo quincenal: una fecha "YYYY-MM-DD" en la que este trabajo
     /// pagó (o pagará). Los demás cobros caen cada 14 días desde ahí.
     var pagoAncla: String?
+    /// Semanas de espera entre el final de la semana trabajada y el
+    /// cobro: 1 = se cobra en la semana siguiente (trabajo 2–8 nov,
+    /// cobro el viernes 13); 2 = pasan 2 semanas (trabajo 2–8 nov,
+    /// cobro el viernes 20). nil = 1.
+    var pagoRetraso: Int?
 
     // Misma paleta que Android (JOB_COLORS).
     static let palette: [String] = [
@@ -70,6 +75,7 @@ extension Job {
         pagoFrecuencia = c.opt(.pagoFrecuencia)
         pagoDia = c.opt(.pagoDia)
         pagoAncla = c.opt(.pagoAncla)
+        pagoRetraso = c.opt(.pagoRetraso)
     }
 }
 

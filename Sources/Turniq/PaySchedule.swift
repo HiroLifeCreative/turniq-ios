@@ -1,12 +1,14 @@
 import Foundation
 
 // MARK: - Cobro por trabajo
-// Cada trabajo paga con su propio ritmo:
-//   · semanal    → todos los (viernes), por la semana lun–dom anterior
-//   · quincenal  → cada 2 semanas, por las 2 semanas lun–dom anteriores
-// Regla del periodo (la misma del "día de cobro" de Android): un
-// cobro paga las semanas completas que terminaron el domingo ANTES de
-// la semana del día de cobro.
+// Cada trabajo paga con su propio ritmo y su propia espera:
+//   · frecuencia: semanal (un cobro por semana trabajada) o quincenal
+//     (un cobro cada 14 días que paga 2 semanas lun–dom).
+//   · espera (pagoRetraso): cuántas semanas pasan desde que termina
+//     la semana trabajada hasta el cobro.
+//       1 → trabajo 2–8 nov, cobro el viernes 13 (semana siguiente)
+//       2 → trabajo 2–8 nov, cobro el viernes 20 (pasan 2 semanas)
+// El periodo pagado siempre son semanas completas lunes–domingo.
 
 enum PayFreq: String, CaseIterable, Identifiable {
     case semanal
@@ -78,10 +80,22 @@ enum Pay {
         }
     }
 
-    /// Periodo (lunes … domingo) que paga un día de cobro.
+    /// Semanas de espera entre el fin del periodo y el cobro (1…4).
+    static func lag(_ job: Job) -> Int {
+        min(4, max(1, job.pagoRetraso ?? 1))
+    }
+
+    static func lagLabel(_ weeks: Int) -> String {
+        weeks <= 1 ? "La semana siguiente" : "\(weeks) semanas después"
+    }
+
+    /// Periodo (lunes … domingo) que paga un día de cobro: termina el
+    /// domingo de `lag` semanas antes de la semana del cobro.
     static func period(_ job: Job, payday: String) -> (start: String, end: String) {
         let payMonday = Calc.monday(of: payday)
-        return (Calc.addDays(payMonday, -7 * freq(job).weeks), Calc.addDays(payMonday, -1))
+        let end = Calc.addDays(payMonday, -1 - 7 * (lag(job) - 1))
+        let start = Calc.addDays(end, -(7 * freq(job).weeks - 1))
+        return (start, end)
     }
 
     /// Detalle de un cobro: periodo y monto trabajado.
@@ -116,8 +130,10 @@ enum Pay {
             .sorted { $0.payday < $1.payday }
     }
 
-    /// "Cada semana · viernes" / "Cada 2 semanas · viernes"
+    /// "Cada semana · viernes" / "Cada semana · viernes · 2 sem. después"
     static func summary(_ job: Job, settings: Settings) -> String {
-        "\(freq(job).label) · \(Calc.daysLong[weekday(job, settings: settings)].lowercased())"
+        var s = "\(freq(job).label) · \(Calc.daysLong[weekday(job, settings: settings)].lowercased())"
+        if lag(job) > 1 { s += " · \(lag(job)) sem. después" }
+        return s
     }
 }

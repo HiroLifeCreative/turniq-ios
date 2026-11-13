@@ -89,7 +89,7 @@ struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
         ("1.1.0", "2026-11-13", [
             "Ícono de la app en la pantalla de inicio del iPhone.",
-            "Cobro por trabajo: cada empleo se configura para pagar cada semana o cada 2 semanas, con su día de cobro.",
+            "Cobro por trabajo: cada empleo se configura para pagar cada semana o cada 2 semanas, con su día de cobro y su espera (la semana siguiente o 2 semanas después de trabajar).",
             "Tarjeta Próximos cobros en Inicio y Ganancias: fecha de cada cobro, periodo que paga y monto neto.",
             "Aviso la mañana del día de cobro.",
             "Sincronización con el Calendario del iPhone: turnos y días de cobro en un calendario propio llamado Turniq.",
