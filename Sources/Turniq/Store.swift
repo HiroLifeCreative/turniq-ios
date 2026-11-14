@@ -119,6 +119,7 @@ final class Store: ObservableObject {
         d.jobs.removeAll { $0.id == id }
         d.shifts.removeAll { $0.jobId == id }
         d.templates.removeAll { $0.jobId == id }
+        d.cheques.removeAll { $0.jobId == id }
         data = d
     }
 
@@ -250,6 +251,28 @@ final class Store: ObservableObject {
         default:
             return nil
         }
+    }
+
+    /// Suma propinas a un turno (se pregunta al marcar salida).
+    func addTips(shiftId: String, amount: Double) {
+        guard amount > 0, let i = data.shifts.firstIndex(where: { $0.id == shiftId }) else { return }
+        data.shifts[i].propinas += amount
+    }
+
+    // MARK: Cheques (comparar lo pagado con lo calculado)
+
+    func paycheck(jobId: String, payday: String) -> Paycheck? {
+        data.cheques.first { $0.jobId == jobId && $0.payday == payday }
+    }
+
+    /// Guarda lo recibido en un día de cobro; nil lo borra.
+    func setPaycheck(jobId: String, payday: String, recibido: Double?) {
+        var list = data.cheques
+        list.removeAll { $0.jobId == jobId && $0.payday == payday }
+        if let recibido, recibido >= 0 {
+            list.append(Paycheck(id: UUID().uuidString, jobId: jobId, payday: payday, recibido: recibido))
+        }
+        data.cheques = list
     }
 
     /// Corrige la hora real de entrada del turno en curso.

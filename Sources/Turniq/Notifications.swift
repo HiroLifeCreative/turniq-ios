@@ -83,7 +83,36 @@ enum Notifications {
             }
         }
 
-        // 3. Aviso del día de cobro (9:00 a. m.), los 2 próximos de
+        // 3. Aviso de hora extra: al empezar el turno con el que un
+        //    trabajo llega a 4 h o menos del umbral semanal.
+        if settings.avisoHoraExtra, settings.umbralExtraHrs > 0 {
+            let umbral = settings.umbralExtraHrs
+            let warnAt = max(0, umbral - 4)
+            let thisWeek = Calc.monday(of: Calc.todayYmd())
+            for monday in [thisWeek, Calc.addDays(thisWeek, 7)] {
+                for job in data.jobs {
+                    let week = data.shifts
+                        .filter { $0.jobId == job.id && !$0.esLibre && Calc.monday(of: $0.fecha) == monday }
+                        .sorted { ($0.fecha + $0.horaEntrada) < ($1.fecha + $1.horaEntrada) }
+                    var total = 0.0
+                    for s in week {
+                        let before = total
+                        total += Calc.projectedHours(s)
+                        guard before < warnAt, total >= warnAt else { continue }
+                        if let start = Calc.date(s.fecha, s.horaEntrada), start > now {
+                            let body = total > umbral
+                                ? L("Con este turno llegarás a \(Calc.fmtHoursLong(total)) esta semana: pasarás de las \(Calc.fmtHoursLong(umbral)) y entrarás en hora extra.")
+                                : L("Con este turno llegarás a \(Calc.fmtHoursLong(total)) esta semana. La hora extra empieza a las \(Calc.fmtHoursLong(umbral)).")
+                            add(center, id: "turniq-extra-\(job.id)-\(monday)",
+                                title: L("Hora extra cerca · \(job.nombre)"), body: body, fire: start)
+                        }
+                        break
+                    }
+                }
+            }
+        }
+
+        // 4. Aviso del día de cobro (9:00 a. m.), los 2 próximos de
         //    cada trabajo. El monto solo se dice si ya es definitivo.
         guard settings.avisoCobro else { return }
         for job in data.jobs {

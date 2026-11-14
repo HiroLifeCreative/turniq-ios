@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.2.3, 14 nov 2026)
+## Estado (v1.3.0, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,38 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.3.0**
+
+- **Comparar cheques** (`PaychecksView.swift`, Más → Comparar
+  cheques): se anota el neto recibido en cada día de cobro y se
+  compara con lo calculado. Se guarda en `cheques` del documento.
+- **Tarifas especiales** (`Calc.rate`, `Calc.multiplier`,
+  `Calc.nightHours`): sueldo propio por estación
+  (`Station.sueldoHora`), extra nocturno por hora entre 10 p. m. y
+  6 a. m. (`Job.nocturnoExtra`) y pago ×1.5 / ×2 por turno
+  (`Shift.multiplicador`). El recargo de hora extra usa la tarifa
+  promedio de la semana en ese trabajo; con una sola tarifa el
+  resultado es el mismo de antes. Android todavía no lee estos campos.
+- **Aviso de hora extra**: tarjeta en Inicio y notificación al empezar
+  el turno con el que un trabajo llega a 4 h o menos del umbral.
+- **Resumen anual** (`AnnualSummary.swift`): por trabajo y por mes,
+  con exportación a PDF.
+- **Propinas**: se preguntan al marcar salida; Ganancias muestra el
+  promedio por día de la semana.
+- **Compartir semana** (`WeekShare.swift`): imagen del horario, sin
+  montos.
+- **Bienvenida** (`OnboardingView.swift`): idioma, aceptación de
+  términos, nombre y primer trabajo. Se muestra una vez, también a
+  quien ya tenía datos.
+- **Términos y privacidad**: `tools/legal.py` es la fuente única y
+  genera `Sources/Turniq/LegalContent.swift` (pantalla en Más) y las
+  páginas `docs/terms.html` y `docs/privacy.html` para publicarlas en
+  una URL (App Store Connect pide la de privacidad).
+
+**Herramientas** (`tools/`, requieren `pip install tree-sitter
+tree-sitter-swift`): `i18n_table.py` + `i18n_wrap.py` (traducciones y
+`Lang.swift`), `legal.py` (textos legales) y `syntax_check.py`.
 
 **Nuevo en 1.2.3**
 

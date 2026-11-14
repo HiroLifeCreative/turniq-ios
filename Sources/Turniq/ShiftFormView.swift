@@ -26,6 +26,7 @@ struct ShiftFormView: View {
     @State private var marcoSalida = false
     @State private var entradaReal: Date = Date()
     @State private var salidaReal: Date = Date()
+    @State private var mult: Double = 1
     @State private var loaded = false
     @State private var confirmDelete = false
 
@@ -55,6 +56,11 @@ struct ShiftFormView: View {
                             }
                         }
                         Stepper(L("Descanso: \(breakMin) min"), value: $breakMin, in: 0...240, step: 5)
+                        Picker(L("Pago de este turno"), selection: $mult) {
+                            Text(L("Normal")).tag(1.0)
+                            Text(L("Tiempo y medio (×1.5)")).tag(1.5)
+                            Text(L("Feriado / doble (×2)")).tag(2.0)
+                        }
                     }
                     if let job = store.job(id: jobId), !job.estaciones.isEmpty {
                         Section(L("Estaciones")) {
@@ -134,6 +140,7 @@ struct ShiftFormView: View {
             bono = e.bono > 0 ? Self.num(e.bono) : ""
             notas = e.notas
             estacionesSel = Set(e.estacionIds)
+            mult = [1.0, 1.5, 2.0].contains(Calc.multiplier(e)) ? Calc.multiplier(e) : 1
             marcoEntrada = e.horaEntradaReal != nil
             marcoSalida = e.horaSalidaReal != nil
             entradaReal = Self.date(fromHHMM: e.horaEntradaReal ?? e.horaEntrada)
@@ -184,7 +191,8 @@ struct ShiftFormView: View {
             propinas: Self.parse(propinas),
             bono: Self.parse(bono),
             notas: notas,
-            gcalEventId: editing?.gcalEventId
+            gcalEventId: editing?.gcalEventId,
+            multiplicador: (mult == 1 || esLibre) ? nil : mult
         )
         store.upsertShift(shift)
         dismiss()

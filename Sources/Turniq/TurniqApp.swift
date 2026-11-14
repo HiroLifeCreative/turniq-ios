@@ -19,6 +19,8 @@ struct TurniqApp: App {
             Group {
                 if store.settings.pin != nil && !unlocked {
                     PinLockView { unlocked = true }
+                } else if !store.settings.onboardingDone {
+                    OnboardingView()
                 } else {
                     TurniqShell()
                 }

@@ -97,6 +97,7 @@ struct JobFormView: View {
     @State private var lat: Double? = nil
     @State private var lon: Double? = nil
     @StateObject private var locator = LocationOnce()
+    @State private var nocturno = ""
     @State private var loaded = false
 
     /// El trabajo tal como quedaría, para la vista previa del cobro.
@@ -116,7 +117,8 @@ struct JobFormView: View {
             pagoAncla: freq == .quincenal ? ancla : nil,
             pagoRetraso: lag,
             lat: lat,
-            lon: lon
+            lon: lon,
+            nocturnoExtra: ShiftFormView.parse(nocturno) > 0 ? ShiftFormView.parse(nocturno) : nil
         )
     }
 
@@ -224,9 +226,34 @@ struct JobFormView: View {
                     Text(L("El PIN que marcas en el reloj de este trabajo. Turniq te lo muestra al marcar entrada, para que no se te olvide."))
                 }
 
-                Section(L("Estaciones")) {
-                    ForEach(estaciones) { st in
-                        Text(st.nombre)
+                Section {
+                    LabeledContent(L("Extra nocturno ($/h)")) {
+                        TextField("0", text: $nocturno)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                } header: {
+                    Text(L("Tarifas especiales"))
+                } footer: {
+                    Text(L("El extra nocturno se suma por cada hora trabajada entre las 10 p. m. y las 6 a. m. Cada estación puede tener su propio sueldo (abajo), y el pago doble de un feriado se marca en el turno."))
+                }
+
+                Section {
+                    ForEach($estaciones) { $st in
+                        HStack {
+                            Text(st.nombre)
+                            Spacer()
+                            TextField(L("Sueldo del trabajo"), text: Binding(
+                                get: { st.sueldoHora.map { ShiftFormView.num($0) } ?? "" },
+                                set: { v in
+                                    let n = ShiftFormView.parse(v)
+                                    st.sueldoHora = n > 0 ? n : nil
+                                }
+                            ))
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 150)
+                        }
                     }
                     .onDelete { estaciones.remove(atOffsets: $0) }
                     HStack {
@@ -240,6 +267,10 @@ struct JobFormView: View {
                         }
                         .disabled(nuevaEstacion.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
+                } header: {
+                    Text(L("Estaciones"))
+                } footer: {
+                    Text(L("Si una estación paga distinto, escribe su sueldo por hora a la derecha. Vacío = el sueldo del trabajo."))
                 }
             }
             .navigationTitle(editing == nil ? L("Agregar trabajo") : L("Editar trabajo"))
@@ -265,6 +296,7 @@ struct JobFormView: View {
             sueldo = ShiftFormView.num(e.sueldoHora)
             tax = ShiftFormView.num(e.taxPct)
             pinReloj = e.pinMarcaje ?? ""
+            nocturno = e.nocturnoExtra.map { ShiftFormView.num($0) } ?? ""
             estaciones = e.estaciones
             freq = Pay.freq(e)
             lag = Pay.lag(e)

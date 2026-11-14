@@ -7,17 +7,20 @@ import TurniqShared
 struct MasView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private enum Dest: Hashable { case settings, calendar, shortcuts, changelog }
+    private enum Dest: Hashable { case paychecks, annual, settings, calendar, shortcuts, terms, changelog }
 
     private let items: [(dest: Dest, icon: String, label: String)] = [
+        (.paychecks, "banknote", L("Comparar cheques")),
+        (.annual, "doc.text", L("Resumen anual")),
         (.settings, "gearshape", L("Ajustes")),
         (.calendar, "calendar", L("Calendario del iPhone")),
         (.shortcuts, "bolt.circle", L("Atajos, Siri y Widgets")),
+        (.terms, "building.columns", L("Términos y privacidad")),
         (.changelog, "sparkles", L("Novedades")),
     ]
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.2.3"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.3.0"
     }
 
     var body: some View {
@@ -76,6 +79,9 @@ struct MasView: View {
             }
             .navigationDestination(for: Dest.self) { d in
                 switch d {
+                case .paychecks: PaychecksView()
+                case .annual: AnnualSummaryView()
+                case .terms: TermsView()
                 case .settings: SettingsView()
                 case .calendar: CalendarSyncView()
                 case .shortcuts: ShortcutsHelpView()
@@ -90,6 +96,15 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.3.0", "2026-11-14", [
+            L("Comparar cheques: anota lo que te pagaron cada día de cobro y la app lo compara con lo calculado."),
+            L("Tarifas especiales: sueldo propio por estación, extra nocturno y pago doble o tiempo y medio por turno."),
+            L("Aviso de hora extra cuando un trabajo se acerca al límite semanal."),
+            L("Resumen anual por trabajo, con exportación a PDF."),
+            L("Propinas: se preguntan al marcar salida y Ganancias muestra qué días dejan más."),
+            L("Compartir semana: una imagen del horario para enviar."),
+            L("Bienvenida de la primera vez, con términos y condiciones y política de privacidad."),
+        ]),
         ("1.2.3", "2026-11-14", [
             L("Exportar respaldo abre la hoja de Compartir con el archivo listo para guardar o enviar."),
             L("Un respaldo .json se puede importar con Abrir en Turniq desde Archivos u otras apps."),

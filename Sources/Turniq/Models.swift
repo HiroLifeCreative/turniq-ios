@@ -23,6 +23,8 @@ extension KeyedDecodingContainer {
 struct Station: Codable, Identifiable, Equatable {
     var id: String
     var nombre: String
+    /// Sueldo por hora propio de esta estación. nil = el del trabajo.
+    var sueldoHora: Double?
 }
 
 struct Job: Codable, Identifiable, Equatable {
@@ -61,6 +63,11 @@ struct Job: Codable, Identifiable, Equatable {
     var lat: Double?
     var lon: Double?
 
+    // MARK: Tarifas especiales
+    /// Extra por hora trabajada de noche (10 p. m. – 6 a. m.), en
+    /// dólares. nil o 0 = sin extra nocturno.
+    var nocturnoExtra: Double?
+
     // Misma paleta que Android (JOB_COLORS).
     static let palette: [String] = [
         "#0064E0", "#7C3AED", "#0E7C3E", "#D97706",
@@ -84,6 +91,7 @@ extension Job {
         pagoRetraso = c.opt(.pagoRetraso)
         lat = c.opt(.lat)
         lon = c.opt(.lon)
+        nocturnoExtra = c.opt(.nocturnoExtra)
     }
 }
 
@@ -114,6 +122,9 @@ struct Shift: Codable, Identifiable, Equatable {
     var notas: String = ""
     /// Evento de Google Calendar vinculado (Android)
     var gcalEventId: String?
+    /// Pago especial del turno: 2 = feriado / pago doble, 1.5 = tiempo
+    /// y medio. nil = pago normal.
+    var multiplicador: Double? = nil
 }
 
 extension Shift {
@@ -135,6 +146,7 @@ extension Shift {
         bono = c.val(.bono, 0)
         notas = c.val(.notas, "")
         gcalEventId = c.opt(.gcalEventId)
+        multiplicador = c.opt(.multiplicador)
     }
 }
 
@@ -199,6 +211,10 @@ struct Settings: Codable, Equatable {
     var actividadEnVivo: Bool = true
     /// Aviso al llegar a un trabajo con ubicación guardada
     var avisoLlegada: Bool = true
+    /// Aviso cuando un trabajo se acerca a la hora extra de la semana
+    var avisoHoraExtra: Bool = true
+    /// Preguntar las propinas al marcar salida
+    var preguntarPropinas: Bool = true
 }
 
 extension Settings {
@@ -228,6 +244,29 @@ extension Settings {
         avisoCobro = c.val(.avisoCobro, d.avisoCobro)
         actividadEnVivo = c.val(.actividadEnVivo, d.actividadEnVivo)
         avisoLlegada = c.val(.avisoLlegada, d.avisoLlegada)
+        avisoHoraExtra = c.val(.avisoHoraExtra, d.avisoHoraExtra)
+        preguntarPropinas = c.val(.preguntarPropinas, d.preguntarPropinas)
+    }
+}
+
+/// Lo que realmente pagó un trabajo en un día de cobro, para
+/// compararlo con lo que calculó Turniq.
+struct Paycheck: Codable, Identifiable, Equatable {
+    var id: String
+    var jobId: String
+    /// Día de cobro "YYYY-MM-DD"
+    var payday: String
+    /// Neto recibido en el cheque
+    var recibido: Double
+}
+
+extension Paycheck {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.val(.id, UUID().uuidString)
+        jobId = c.val(.jobId, "")
+        payday = c.val(.payday, "")
+        recibido = c.val(.recibido, 0)
     }
 }
 
@@ -241,6 +280,8 @@ struct TurniqData: Codable {
     var shifts: [Shift] = []
     var templates: [ShiftTemplate] = []
     var settings: Settings = Settings()
+    /// Cheques anotados (solo iOS por ahora)
+    var cheques: [Paycheck] = []
 }
 
 extension TurniqData {
@@ -252,5 +293,6 @@ extension TurniqData {
         shifts = c.val(.shifts, [])
         templates = c.val(.templates, [])
         settings = c.val(.settings, Settings())
+        cheques = c.val(.cheques, [])
     }
 }

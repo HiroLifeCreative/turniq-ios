@@ -11,6 +11,7 @@ struct WeekView: View {
     @State private var confirmDelete: Shift? = nil
     @State private var dupDone = false
     @State private var detail: Shift? = nil
+    @State private var shareFile: ShareFile? = nil
 
     private var fmt12: Bool { store.settings.formatoHora == "12h" }
     private var hidden: Bool { store.settings.dineroOculto }
@@ -45,6 +46,11 @@ struct WeekView: View {
                     confirmDup = true
                 }
                 .padding(.top, 4)
+                GhostButton(title: L("Compartir semana"), icon: "square.and.arrow.up") {
+                    if let url = WeekShare.image(monday: monday, store: store) {
+                        shareFile = ShareFile(url: url)
+                    }
+                }
                 if dupDone {
                     Text(L("✓ Semana duplicada"))
                         .font(.turniq(14, .bold)).foregroundStyle(T.success)
@@ -67,6 +73,9 @@ struct WeekView: View {
             )
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: detail?.id)
+        .sheet(item: $shareFile) { f in
+            ActivityView(items: [f.url]).presentationDetents([.medium, .large])
+        }
         .sheet(item: $editing) { s in
             ShiftFormView(editing: s)
         }

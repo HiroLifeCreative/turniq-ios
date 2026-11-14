@@ -107,6 +107,8 @@ struct SettingsView: View {
                     ))
                 }
                 Toggle(L("Avisar al llegar al trabajo"), isOn: bind(\.avisoLlegada))
+                Toggle(L("Avisar si me acerco a la hora extra"), isOn: bind(\.avisoHoraExtra))
+                Toggle(L("Preguntar propinas al marcar salida"), isOn: bind(\.preguntarPropinas))
                 Toggle(L("Actividad en Vivo al marcar entrada"), isOn: bind(\.actividadEnVivo))
             } header: {
                 Text(L("Avisos de turno"))

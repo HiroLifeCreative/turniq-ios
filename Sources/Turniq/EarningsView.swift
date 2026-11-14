@@ -55,6 +55,8 @@ struct EarningsView: View {
 
                 PaydaysCard()
 
+                TipsByDayCard()
+
                 monthSection
 
                 yearSection
@@ -125,7 +127,7 @@ struct EarningsView: View {
                 HStack(alignment: .top) {
                     DarkStat(label: L("Programadas"), value: Calc.fmtHours(scheduled.hours), color: T.sky)
                     Spacer()
-                    DarkStat(label: "Total", value: Calc.fmtHours(total), alignment: .trailing)
+                    DarkStat(label: L("Total"), value: Calc.fmtHours(total), alignment: .trailing)
                 }
             }
         }

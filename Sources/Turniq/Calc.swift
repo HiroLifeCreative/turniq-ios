@@ -134,6 +134,49 @@ enum Calc {
         return scheduledHours(s)
     }
 
+    // MARK: Tarifas de un turno
+
+    /// Sueldo por hora que aplica al turno: el de la primera estación
+    /// marcada que tenga tarifa propia; si ninguna, el del trabajo.
+    static func rate(_ s: Shift, job: Job?) -> Double {
+        guard let job else { return 0 }
+        for id in s.estacionIds {
+            if let st = job.estaciones.first(where: { $0.id == id }),
+               let r = st.sueldoHora, r > 0 {
+                return r
+            }
+        }
+        return job.sueldoHora
+    }
+
+    /// Multiplicador del turno (feriado / pago doble). 1 = normal.
+    static func multiplier(_ s: Shift) -> Double {
+        guard let m = s.multiplicador, m > 0 else { return 1 }
+        return m
+    }
+
+    /// Horas del turno que caen de noche (10 p. m. – 6 a. m.), con el
+    /// descanso descontado en proporción.
+    static func nightHours(_ s: Shift) -> Double {
+        let inHm = s.horaEntradaReal ?? s.horaEntrada
+        let outHm = s.horaEntradaReal != nil ? s.horaSalidaReal : s.horaSalida
+        let outDay = s.horaEntradaReal != nil ? (s.fechaSalidaReal ?? s.fechaSalida) : s.fechaSalida
+        guard let outHm, let a = hmToMin(inHm), let x = hmToMin(outHm) else { return 0 }
+        let days = outDay.map { daysBetween(s.fecha, $0) } ?? (x <= a ? 1 : 0)
+        let b = x + max(0, days) * 1440
+        guard b > a else { return 0 }
+        // Ventanas nocturnas en minutos desde la medianoche del día
+        // de entrada: [-120, 360), [1320, 1800), [2760, 3240)…
+        var night = 0
+        var w = -120
+        while w < b {
+            let lo = max(a, w), hi = min(b, w + 480)
+            if hi > lo { night += hi - lo }
+            w += 1440
+        }
+        return Double(night) / Double(b - a) * shiftHours(s)
+    }
+
     // MARK: ¿Ya se trabajó? (criterio global de la app)
 
     enum WorkState { case worked, scheduled }
@@ -206,21 +249,38 @@ enum Calc {
         umbralExtraHrs: Double,
         multExtra: Double
     ) -> WeekTotals {
-        var byJob: [String: (hours: Double, tipsBonus: Double)] = [:]
+        // Por trabajo: horas, pago base (con la tarifa y el
+        // multiplicador de cada turno), pago a tarifa simple (para el
+        // promedio de la hora extra), extra nocturno y propinas+bono.
+        struct Acc {
+            var hours = 0.0, base = 0.0, plain = 0.0, night = 0.0, tipsBonus = 0.0
+        }
+        var byJob: [String: Acc] = [:]
         for s in shifts where !s.esLibre {
-            var acc = byJob[s.jobId] ?? (hours: 0, tipsBonus: 0)
-            acc.hours += shiftHours(s)
+            let job = jobsById[s.jobId]
+            let h = shiftHours(s)
+            let r = rate(s, job: job)
+            var acc = byJob[s.jobId] ?? Acc()
+            acc.hours += h
+            acc.base += h * r * multiplier(s)
+            acc.plain += h * r
+            if let extra = job?.nocturnoExtra, extra > 0 {
+                acc.night += nightHours(s) * extra
+            }
             acc.tipsBonus += s.propinas + s.bono
             byJob[s.jobId] = acc
         }
         var t = WeekTotals()
         for (jobId, acc) in byJob {
             let job = jobsById[jobId]
-            let rate = job?.sueldoHora ?? 0
             let taxRate = (job?.taxPct ?? 0) / 100.0
             let reg = min(acc.hours, umbralExtraHrs)
             let ot = max(0, acc.hours - umbralExtraHrs)
-            let g = reg * rate + ot * rate * multExtra + acc.tipsBonus
+            // El recargo de hora extra usa la tarifa promedio de la
+            // semana en ese trabajo. Con una sola tarifa da lo mismo
+            // que antes: normales × sueldo + extra × sueldo × recargo.
+            let avgRate = acc.hours > 0 ? acc.plain / acc.hours : 0
+            let g = acc.base + ot * avgRate * (multExtra - 1) + acc.night + acc.tipsBonus
             t.hours += acc.hours
             t.regularHours += reg
             t.overtimeHours += ot
@@ -256,6 +316,38 @@ enum Calc {
     static func hours(ofJob jobId: String, in shifts: [Shift]) -> Double {
         shifts.filter { $0.jobId == jobId && !$0.esLibre }
             .reduce(0) { $0 + shiftHours($1) }
+    }
+
+    // MARK: Aviso de hora extra
+
+    struct OvertimeWarning: Identifiable {
+        var job: Job
+        /// Horas ya trabajadas esta semana
+        var worked: Double
+        /// Trabajadas + lo que falta por trabajar según el horario
+        var projected: Double
+        var id: String { job.id }
+    }
+
+    /// Horas con las que un turno cuenta para la proyección semanal:
+    /// las reales si ya se cerró, las programadas si no.
+    static func projectedHours(_ s: Shift) -> Double {
+        (s.horaEntradaReal != nil && s.horaSalidaReal != nil) ? shiftHours(s) : scheduledHours(s)
+    }
+
+    /// Trabajos que esta semana llegan a 4 h o menos de la hora extra.
+    static func overtimeWarnings(jobs: [Job], shifts: [Shift], umbral: Double) -> [OvertimeWarning] {
+        guard umbral > 0 else { return [] }
+        let thisWeek = Calc.monday(of: todayYmd())
+        var out: [OvertimeWarning] = []
+        for job in jobs {
+            let week = shifts.filter { $0.jobId == job.id && !$0.esLibre && Calc.monday(of: $0.fecha) == thisWeek }
+            let projected = week.reduce(0.0) { $0 + projectedHours($1) }
+            guard projected >= umbral - 4 else { continue }
+            let worked = hours(ofJob: job.id, in: onlyWorked(week))
+            out.append(OvertimeWarning(job: job, worked: worked, projected: projected))
+        }
+        return out
     }
 
     // MARK: Formato

@@ -121,7 +121,7 @@ struct ShiftDetailSheet: View {
                                      color: T.money, alignment: .trailing)
                         }
                         HStack(alignment: .top) {
-                            DarkStat(label: L("Sueldo"), value: hidden ? "••••" : "\(Calc.money(job?.sueldoHora ?? 0))/h")
+                            DarkStat(label: L("Sueldo"), value: hidden ? "••••" : "\(Calc.money(Calc.rate(s, job: job)))/h" + (Calc.multiplier(s) != 1 ? " ×\(ShiftFormView.num(Calc.multiplier(s)))" : ""))
                             Spacer()
                             DarkStat(label: "Taxes", value: T.cash(pay.taxes, hidden: hidden), alignment: .trailing)
                         }

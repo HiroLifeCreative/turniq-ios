@@ -86,7 +86,7 @@ enum LiveShift {
         if let out = s.horaSalida, let e = Calc.date(Calc.endDate(s), out), e > start {
             scheduledEnd = e
         }
-        let rate = (job?.sueldoHora ?? 0) * (1 - (job?.taxPct ?? 0) / 100)
+        let rate = Calc.rate(s, job: job) * Calc.multiplier(s) * (1 - (job?.taxPct ?? 0) / 100)
         let state = ShiftActivityAttributes.ContentState(
             start: start, scheduledEnd: scheduledEnd,
             netPerHour: rate, hideMoney: data.settings.dineroOculto, english: Lang.en)

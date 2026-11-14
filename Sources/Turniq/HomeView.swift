@@ -10,6 +10,8 @@ struct HomeView: View {
     @State private var showEditEntry = false
     @State private var showNewShift = false
     @State private var entryDraft = Date()
+    @State private var tipsShiftId: String? = nil
+    @State private var tipsText = ""
 
     private enum HeroState { case working, missed, upcoming, idle }
 
@@ -87,6 +89,52 @@ struct HomeView: View {
         .sheet(isPresented: $showNewShift) {
             ShiftFormView(editing: nil, defaultFecha: Calc.todayYmd())
         }
+        .alert(L("¿Propinas de este turno?"), isPresented: Binding(
+            get: { tipsShiftId != nil },
+            set: { if !$0 { tipsShiftId = nil } }
+        )) {
+            TextField("0.00", text: $tipsText)
+                .keyboardType(.decimalPad)
+            Button(L("Guardar")) {
+                if let id = tipsShiftId {
+                    store.addTips(shiftId: id, amount: ShiftFormView.parse(tipsText))
+                }
+                tipsShiftId = nil
+            }
+            Button(L("Ahora no"), role: .cancel) { tipsShiftId = nil }
+        } message: {
+            Text(L("Se suman al turno que acabas de cerrar. Puedes dejar de ver esta pregunta en Ajustes."))
+        }
+    }
+
+    /// Aviso cuando un trabajo está a 4 h o menos de la hora extra.
+    @ViewBuilder
+    private var overtimeChips: some View {
+        let umbral = store.settings.umbralExtraHrs
+        let warnings = store.settings.avisoHoraExtra
+            ? Calc.overtimeWarnings(jobs: store.jobs, shifts: store.shifts, umbral: umbral)
+            : []
+        ForEach(warnings) { w in
+            Card {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(T.amber)
+                        .frame(width: 44, height: 44)
+                        .background(T.amber.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(w.projected > umbral
+                             ? L("Hora extra en \(w.job.nombre)")
+                             : L("Cerca de la hora extra en \(w.job.nombre)"))
+                            .font(.turniq(15, .bold)).foregroundStyle(T.text).lineLimit(1)
+                        Text(L("Llevas \(Calc.fmtHoursLong(w.worked)) y con lo programado llegas a \(Calc.fmtHoursLong(w.projected)) esta semana. La hora extra empieza a las \(Calc.fmtHoursLong(umbral))."))
+                            .font(.turniq(12)).foregroundStyle(T.text2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
     }
 
     private func content(now: Date) -> some View {
@@ -101,6 +149,11 @@ struct HomeView: View {
                     VStack(spacing: 8) {
                         PrimaryButton(title: L("Marcar salida"), color: stateColor(st), textColor: .white) {
                             store.clockOut(shiftId: open.id)
+                            // Propinas en efectivo: se preguntan al salir.
+                            if store.settings.preguntarPropinas {
+                                tipsText = ""
+                                tipsShiftId = open.id
+                            }
                         }
                         GhostButton(
                             title: L("Editar entrada · \(Calc.fmtTime(open.horaEntradaReal ?? open.horaEntrada, format12: fmt12))"),
@@ -115,6 +168,8 @@ struct HomeView: View {
                 }
 
                 if let next { reminder(next, now: now) }
+
+                overtimeChips
 
                 PaydaysCard()
 
@@ -241,7 +296,7 @@ struct HomeView: View {
             totalSecs = max(60, (o - i) * 60)
         }
         let pct = min(1, Double(secs) / Double(totalSecs))
-        let rate = job?.sueldoHora ?? 0
+        let rate = Calc.rate(s, job: job) * Calc.multiplier(s)
         let tax = (job?.taxPct ?? 0) / 100
         let liveNet = rate * Double(secs) / 3600 * (1 - tax)
 

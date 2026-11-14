@@ -136,6 +136,20 @@ enum Pay {
         return out
     }
 
+    /// Los últimos `count` cobros de un trabajo (hoy incluido), del más
+    /// reciente al más antiguo. Para comparar con los cheques.
+    static func recent(_ job: Job, shifts: [Shift], settings: Settings, count: Int = 6) -> [PayInfo] {
+        let today = Calc.todayYmd()
+        var day = nextPayday(job, settings: settings, from: today)
+        if day > today { day = Calc.addDays(day, -freq(job).days) }
+        var out: [PayInfo] = []
+        for _ in 0..<max(1, count) {
+            out.append(info(job, payday: day, shifts: shifts, settings: settings, today: today))
+            day = Calc.addDays(day, -freq(job).days)
+        }
+        return out
+    }
+
     /// El próximo cobro de cada trabajo, del más cercano al más lejano.
     static func nextForAll(jobs: [Job], shifts: [Shift], settings: Settings) -> [PayInfo] {
         jobs.compactMap { upcoming($0, shifts: shifts, settings: settings).first }
