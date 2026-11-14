@@ -40,12 +40,12 @@ struct WeekView: View {
                     daySection(day: day, name: Calc.daysShort[idx], inWeek: inWeek)
                 }
                 totalsCard(totals)
-                GhostButton(title: "Duplicar a la próxima semana", icon: "plus.square.on.square") {
+                GhostButton(title: L("Duplicar a la próxima semana"), icon: "plus.square.on.square") {
                     confirmDup = true
                 }
                 .padding(.top, 4)
                 if dupDone {
-                    Text("✓ Semana duplicada")
+                    Text(L("✓ Semana duplicada"))
                         .font(.turniq(14, .bold)).foregroundStyle(T.success)
                 }
             }
@@ -59,24 +59,24 @@ struct WeekView: View {
             ShiftFormView(editing: nil, defaultFecha: ref.fecha)
         }
         .confirmationDialog(
-            "¿Duplicar los \(inWeek.count) turnos de esta semana a la siguiente?",
+            L("¿Duplicar los \(inWeek.count) turnos de esta semana a la siguiente?"),
             isPresented: $confirmDup, titleVisibility: .visible
         ) {
-            Button("Duplicar") {
+            Button(L("Duplicar")) {
                 if store.duplicateWeek(monday: monday) > 0 { dupDone = true }
             }
-            Button("Cancelar", role: .cancel) {}
+            Button(L("Cancelar"), role: .cancel) {}
         }
         .confirmationDialog(
-            "¿Eliminar este turno?",
+            L("¿Eliminar este turno?"),
             isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Eliminar", role: .destructive) {
+            Button(L("Eliminar"), role: .destructive) {
                 if let s = confirmDelete { store.deleteShift(id: s.id) }
                 confirmDelete = nil
             }
-            Button("Cancelar", role: .cancel) { confirmDelete = nil }
+            Button(L("Cancelar"), role: .cancel) { confirmDelete = nil }
         }
         .onChange(of: weekOffset) { _, _ in dupDone = false }
     }
@@ -91,7 +91,7 @@ struct WeekView: View {
                     .foregroundStyle(T.text)
                 if weekOffset != 0 {
                     Button { weekOffset = 0 } label: {
-                        Text("HOY").font(.turniqMono).foregroundStyle(T.primary)
+                        Text(L("HOY")).font(.turniqMono).foregroundStyle(T.primary)
                     }
                 }
             }
@@ -111,7 +111,7 @@ struct WeekView: View {
             TintedCard(accent: "#E8830C") {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("HORA EXTRA · POR TRABAJO")
+                        Text(L("HORA EXTRA · POR TRABAJO"))
                             .font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                         Spacer()
                         Text("×\(store.settings.multExtra.formatted())")
@@ -136,7 +136,7 @@ struct WeekView: View {
                         }
                     }
                     if totals.overtimeHours > 0 {
-                        Text("\(Calc.fmtHoursLong(totals.overtimeHours)) de hora extra")
+                        Text(L("\(Calc.fmtHoursLong(totals.overtimeHours)) de hora extra"))
                             .font(.turniq(12)).foregroundStyle(.white.opacity(0.55))
                     }
                 }
@@ -155,10 +155,10 @@ struct WeekView: View {
 
     private func statusLabel(_ st: Calc.Status) -> String {
         switch st {
-        case .now: return "En curso"
-        case .missed: return "No marcado"
-        case .upcoming: return "Próximamente"
-        case .past: return "Horario pasado"
+        case .now: return L("En curso")
+        case .missed: return L("No marcado")
+        case .upcoming: return L("Próximamente")
+        case .past: return L("Horario pasado")
         }
     }
 
@@ -180,7 +180,7 @@ struct WeekView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(ds.count == 1 ? "1 turno" : "\(ds.count) turnos")
+                    Text(ds.count == 1 ? L("1 turno") : L("\(ds.count) turnos"))
                         .font(.turniq(12)).foregroundStyle(T.text2)
                     Spacer()
                     Text(Calc.fmtHoursLong(hours))
@@ -195,7 +195,7 @@ struct WeekView: View {
                 }
                 if ds.isEmpty {
                     Button { creating = FechaRef(fecha: day) } label: {
-                        Text("+ Añadir turno")
+                        Text(L("+ Añadir turno"))
                             .font(.turniq(14, .bold)).foregroundStyle(T.text2)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
@@ -234,7 +234,7 @@ struct WeekView: View {
         }
         var subtitle = job?.nombre ?? ""
         if !stations.isEmpty { subtitle += " · " + stations.joined(separator: ", ") }
-        if s.esLibre { subtitle = "Día libre" }
+        if s.esLibre { subtitle = L("Día libre") }
         return Card {
             HStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 2)
@@ -242,7 +242,7 @@ struct WeekView: View {
                     .frame(width: 4)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(s.esLibre ? "Libre" : Calc.rangeLabel(s, format12: fmt12))
+                        Text(s.esLibre ? L("Libre") : Calc.rangeLabel(s, format12: fmt12))
                             .font(.turniq(15, .bold)).foregroundStyle(T.text)
                             .lineLimit(1).minimumScaleFactor(0.8)
                         Spacer(minLength: 8)
@@ -259,19 +259,19 @@ struct WeekView: View {
                             .font(.turniq(12, .bold)).foregroundStyle(statusColor(st))
                     }
                     if overlaps {
-                        Text("⚠️ Misma hora")
+                        Text(L("⚠️ Misma hora"))
                             .font(.turniq(12, .bold)).foregroundStyle(T.hex("#E65100"))
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(T.hex("#FFF3E0"), in: RoundedRectangle(cornerRadius: 6))
                     }
                 }
                 Menu {
-                    Button { editing = s } label: { Label("Editar", systemImage: "pencil") }
+                    Button { editing = s } label: { Label(L("Editar"), systemImage: "pencil") }
                     Button { store.duplicateShift(id: s.id) } label: {
-                        Label("Duplicar turno", systemImage: "plus.square.on.square")
+                        Label(L("Duplicar turno"), systemImage: "plus.square.on.square")
                     }
                     Button(role: .destructive) { confirmDelete = s } label: {
-                        Label("Eliminar", systemImage: "trash")
+                        Label(L("Eliminar"), systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -291,14 +291,14 @@ struct WeekView: View {
     private func totalsCard(_ t: Calc.WeekTotals) -> some View {
         TintedCard(accent: "#0064E0") {
             VStack(alignment: .leading, spacing: 8) {
-                Text("TOTAL SEMANAL")
+                Text(L("TOTAL SEMANAL"))
                     .font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                 HStack(alignment: .top, spacing: 8) {
-                    DarkStat(label: "Horas", value: Calc.fmtHoursLong(t.hours))
+                    DarkStat(label: L("Horas"), value: Calc.fmtHoursLong(t.hours))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    DarkStat(label: "Bruto", value: T.cash(t.gross, hidden: hidden))
+                    DarkStat(label: L("Bruto"), value: T.cash(t.gross, hidden: hidden))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    DarkStat(label: "Neto", value: T.cash(t.net, hidden: hidden), color: T.money, alignment: .trailing)
+                    DarkStat(label: L("Neto"), value: T.cash(t.net, hidden: hidden), color: T.money, alignment: .trailing)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 if t.overtimeHours > 0 {

@@ -12,16 +12,16 @@ struct TurniqShell: View {
     @State private var taps: [Int] = [0, 0, 0, 0]
 
     private let tabs: [(icon: String, label: String)] = [
-        ("house.fill", "Inicio"),
-        ("calendar", "Semana"),
-        ("briefcase.fill", "Trabajos"),
-        ("chart.bar.fill", "Ganancias"),
+        ("house.fill", L("Inicio")),
+        ("calendar", L("Semana")),
+        ("briefcase.fill", L("Trabajos")),
+        ("chart.bar.fill", L("Ganancias")),
     ]
 
     private var title: String {
         if tab == 0 {
             let first = store.settings.nombreUsuario.split(separator: " ").first.map(String.init) ?? ""
-            return first.isEmpty ? "Hola" : "Hola, \(first)"
+            return first.isEmpty ? L("Hola") : L("Hola, \(first)")
         }
         return tabs[tab].label
     }
@@ -60,7 +60,7 @@ struct TurniqShell: View {
                     .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1))
             }
             .buttonStyle(PressStyle())
-            .accessibilityLabel("Más")
+            .accessibilityLabel(L("Más"))
         }
         .frame(height: 60)
         .padding(.horizontal, 16)

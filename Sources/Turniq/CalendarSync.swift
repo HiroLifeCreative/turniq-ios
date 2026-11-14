@@ -98,7 +98,7 @@ enum CalendarSync {
             ev.calendar = cal
             if s.esLibre {
                 guard let day = Calc.parseDay(s.fecha) else { continue }
-                ev.title = "Día libre"
+                ev.title = L("Día libre")
                 ev.isAllDay = true
                 ev.startDate = day
                 ev.endDate = day
@@ -111,16 +111,16 @@ enum CalendarSync {
                 let stations = s.estacionIds.compactMap { id in
                     job?.estaciones.first(where: { $0.id == id })?.nombre
                 }
-                var title = job?.nombre ?? "Turno"
+                var title = job?.nombre ?? L("Turno")
                 if !stations.isEmpty { title += " · " + stations.joined(separator: ", ") }
                 ev.title = title
                 ev.startDate = start
                 ev.endDate = end
                 var notes: [String] = []
-                if let pin = job?.pinMarcaje, !pin.isEmpty { notes.append("PIN del reloj: \(pin)") }
-                if s.breakMin > 0 { notes.append("Descanso: \(s.breakMin) min") }
+                if let pin = job?.pinMarcaje, !pin.isEmpty { notes.append(L("PIN del reloj: \(pin)")) }
+                if s.breakMin > 0 { notes.append(L("Descanso: \(s.breakMin) min")) }
                 if !s.notas.isEmpty { notes.append(s.notas) }
-                notes.append("Creado por Turniq")
+                notes.append(L("Creado por Turniq"))
                 ev.notes = notes.joined(separator: "\n")
             }
             if (try? ek.save(ev, span: .thisEvent, commit: false)) != nil { count += 1 }
@@ -134,12 +134,12 @@ enum CalendarSync {
                 if let d = Calc.parseDay(day) {
                     let ev = EKEvent(eventStore: ek)
                     ev.calendar = cal
-                    ev.title = "Cobro · \(job.nombre)"
+                    ev.title = L("Cobro · \(job.nombre)")
                     ev.isAllDay = true
                     ev.startDate = d
                     ev.endDate = d
                     let p = Pay.period(job, payday: day)
-                    ev.notes = "Periodo: \(Calc.shortDate(p.start)) – \(Calc.shortDate(p.end))\nCreado por Turniq"
+                    ev.notes = L("Periodo: \(Calc.shortDate(p.start)) – \(Calc.shortDate(p.end))\nCreado por Turniq")
                     if (try? ek.save(ev, span: .thisEvent, commit: false)) != nil { count += 1 }
                 }
                 day = Calc.addDays(day, Pay.freq(job).days)

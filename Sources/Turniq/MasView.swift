@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import TurniqShared
 
 /// Menú "Más" (hoja modal): filas simples con ícono, sin contenedores
 /// de color, y el pie con versión y créditos — igual que Android.
@@ -9,14 +10,14 @@ struct MasView: View {
     private enum Dest: Hashable { case settings, calendar, shortcuts, changelog }
 
     private let items: [(dest: Dest, icon: String, label: String)] = [
-        (.settings, "gearshape", "Ajustes"),
-        (.calendar, "calendar", "Calendario del iPhone"),
-        (.shortcuts, "bolt.circle", "Atajos, Siri y Widgets"),
-        (.changelog, "sparkles", "Novedades"),
+        (.settings, "gearshape", L("Ajustes")),
+        (.calendar, "calendar", L("Calendario del iPhone")),
+        (.shortcuts, "bolt.circle", L("Atajos, Siri y Widgets")),
+        (.changelog, "sparkles", L("Novedades")),
     ]
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.2.0"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.2.1"
     }
 
     var body: some View {
@@ -54,8 +55,8 @@ struct MasView: View {
                                 .padding(8)
                         }
                         .accessibilityLabel("Instagram")
-                        Text("Desarrollado por Nelson Herrera")
-                        Text("© 2026 HiroLifeStudio · Todos los derechos reservados")
+                        Text(L("Desarrollado por Nelson Herrera"))
+                        Text(L("© 2026 HiroLifeStudio · Todos los derechos reservados"))
                     }
                     .font(.turniq(12))
                     .foregroundStyle(T.text3)
@@ -66,11 +67,11 @@ struct MasView: View {
                 .padding(.top, 8)
             }
             .background(T.bg)
-            .navigationTitle("Más")
+            .navigationTitle(L("Más"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Listo") { dismiss() }
+                    Button(L("Listo")) { dismiss() }
                 }
             }
             .navigationDestination(for: Dest.self) { d in
@@ -89,26 +90,30 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.2.1", "2026-11-14", [
+            L("Idioma: inglés o español, en Ajustes → Apariencia."),
+            L("Corrección: los widgets ahora encuentran los datos de la app sin importar cómo se firmó."),
+        ]),
         ("1.2.0", "2026-11-13", [
-            "Widgets para la pantalla de inicio y la pantalla de bloqueo: próximo turno con su PIN, neto de la semana y próximo cobro.",
-            "Actividad en Vivo: contador del turno en curso en la pantalla de bloqueo y en la Dynamic Island.",
-            "Enlaces para Atajos, Siri y el Botón de Acción: marcar entrada y salida sin buscar la app.",
-            "Aviso al llegar al trabajo, con botón para marcar la entrada.",
-            "Respaldo automático diario en la app Archivos.",
+            L("Widgets para la pantalla de inicio y la pantalla de bloqueo: próximo turno con su PIN, neto de la semana y próximo cobro."),
+            L("Actividad en Vivo: contador del turno en curso en la pantalla de bloqueo y en la Dynamic Island."),
+            L("Enlaces para Atajos, Siri y el Botón de Acción: marcar entrada y salida sin buscar la app."),
+            L("Aviso al llegar al trabajo, con botón para marcar la entrada."),
+            L("Respaldo automático diario en la app Archivos."),
         ]),
         ("1.1.0", "2026-11-13", [
-            "Ícono de la app en la pantalla de inicio del iPhone.",
-            "Cobro por trabajo: cada empleo se configura para pagar cada semana o cada 2 semanas, con su día de cobro y su espera (la semana siguiente o 2 semanas después de trabajar).",
-            "Tarjeta Próximos cobros en Inicio y Ganancias: fecha de cada cobro, periodo que paga y monto neto.",
-            "Aviso la mañana del día de cobro.",
-            "Sincronización con el Calendario del iPhone: turnos y días de cobro en un calendario propio llamado Turniq.",
-            "Diseño igualado con Android: encabezado por pantalla, héroe con control de privacidad y reloj en vivo, tarjetas de turno con estado por color, Ganancias por semana, mes y año.",
-            "Las horas reales marcadas mandan en el cálculo del dinero y se pueden corregir al editar el turno.",
-            "Cierre automático de turnos abiertos a la hora tope configurada.",
-            "Los respaldos de Android se importan sin errores aunque les falten campos.",
+            L("Ícono de la app en la pantalla de inicio del iPhone."),
+            L("Cobro por trabajo: cada empleo se configura para pagar cada semana o cada 2 semanas, con su día de cobro y su espera (la semana siguiente o 2 semanas después de trabajar)."),
+            L("Tarjeta Próximos cobros en Inicio y Ganancias: fecha de cada cobro, periodo que paga y monto neto."),
+            L("Aviso la mañana del día de cobro."),
+            L("Sincronización con el Calendario del iPhone: turnos y días de cobro en un calendario propio llamado Turniq."),
+            L("Diseño igualado con Android: encabezado por pantalla, héroe con control de privacidad y reloj en vivo, tarjetas de turno con estado por color, Ganancias por semana, mes y año."),
+            L("Las horas reales marcadas mandan en el cálculo del dinero y se pueden corregir al editar el turno."),
+            L("Cierre automático de turnos abiertos a la hora tope configurada."),
+            L("Los respaldos de Android se importan sin errores aunque les falten campos."),
         ]),
         ("1.0.0", "2026-10-22", [
-            "Primera versión nativa para iPhone: Inicio, Semana, Trabajos, Ganancias y Ajustes.",
+            L("Primera versión nativa para iPhone: Inicio, Semana, Trabajos, Ganancias y Ajustes."),
         ]),
     ]
 
@@ -139,7 +144,7 @@ struct ChangelogView: View {
             .padding(16)
         }
         .background(T.bg)
-        .navigationTitle("Novedades")
+        .navigationTitle(L("Novedades"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -148,9 +153,9 @@ struct ChangelogView: View {
 /// Acción, y cómo añadir los widgets.
 struct ShortcutsHelpView: View {
     private let links: [(url: String, what: String)] = [
-        ("turniq://marcar", "Marca entrada si no estás trabajando, o salida si ya tienes un turno en curso."),
-        ("turniq://entrada", "Marca la entrada del turno de hoy más cercano a la hora actual."),
-        ("turniq://salida", "Marca la salida del turno en curso."),
+        ("turniq://marcar", L("Marca entrada si no estás trabajando, o salida si ya tienes un turno en curso.")),
+        ("turniq://entrada", L("Marca la entrada del turno de hoy más cercano a la hora actual.")),
+        ("turniq://salida", L("Marca la salida del turno en curso.")),
     ]
 
     var body: some View {
@@ -167,35 +172,56 @@ struct ShortcutsHelpView: View {
                     .padding(.vertical, 2)
                 }
             } header: {
-                Text("Enlaces de Turniq")
+                Text(L("Enlaces de Turniq"))
             } footer: {
-                Text("Mantén pulsado un enlace para copiarlo.")
+                Text(L("Mantén pulsado un enlace para copiarlo."))
             }
 
-            Section("Crear el atajo (una sola vez)") {
-                step(1, "Abre la app Atajos y toca + para crear uno nuevo.")
-                step(2, "Añade la acción «Abrir URL» y pega turniq://marcar.")
-                step(3, "Ponle un nombre fácil de decir, por ejemplo «Marcar turno».")
+            Section(L("Crear el atajo (una sola vez)")) {
+                step(1, L("Abre la app Atajos y toca + para crear uno nuevo."))
+                step(2, L("Añade la acción «Abrir URL» y pega turniq://marcar."))
+                step(3, L("Ponle un nombre fácil de decir, por ejemplo «Marcar turno»."))
             }
 
-            Section("Usarlo") {
-                step(1, "Siri: di «Oye Siri, Marcar turno».")
-                step(2, "Botón de Acción: Ajustes → Botón de Acción → Atajo → elige tu atajo.")
-                step(3, "Pantalla de inicio: en el atajo, Compartir → Añadir a pantalla de inicio.")
+            Section(L("Usarlo")) {
+                step(1, L("Siri: di «Oye Siri, Marcar turno»."))
+                step(2, L("Botón de Acción: Ajustes → Botón de Acción → Atajo → elige tu atajo."))
+                step(3, L("Pantalla de inicio: en el atajo, Compartir → Añadir a pantalla de inicio."))
             }
 
             Section {
-                step(1, "Mantén pulsada la pantalla de inicio y toca Editar → Añadir widget.")
-                step(2, "Busca Turniq y elige el tamaño pequeño o mediano.")
-                step(3, "Para la pantalla de bloqueo: mantenla pulsada → Personalizar → Añadir widgets → Turniq.")
+                step(1, L("Mantén pulsada la pantalla de inicio y toca Editar → Añadir widget."))
+                step(2, L("Busca Turniq y elige el tamaño pequeño o mediano."))
+                step(3, L("Para la pantalla de bloqueo: mantenla pulsada → Personalizar → Añadir widgets → Turniq."))
+                widgetStatus
             } header: {
                 Text("Widgets")
             } footer: {
-                Text("Los widgets muestran tu próximo turno con su PIN, el neto de la semana y tu próximo cobro. Se actualizan cada vez que abres Turniq o cambias un turno. La Actividad en Vivo aparece sola al marcar entrada.")
+                Text(L("Los widgets muestran tu próximo turno con su PIN, el neto de la semana y tu próximo cobro. Se actualizan cada vez que abres Turniq o cambias un turno. La Actividad en Vivo aparece sola al marcar entrada."))
             }
         }
-        .navigationTitle("Atajos, Siri y Widgets")
+        .navigationTitle(L("Atajos, Siri y Widgets"))
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// ¿La app y el widget comparten carpeta en esta instalación?
+    @ViewBuilder
+    private var widgetStatus: some View {
+        let ok = AppGroup.containerURL != nil
+        VStack(alignment: .leading, spacing: 4) {
+            Label(L("Estado del widget"), systemImage: ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(ok ? T.success : T.amber)
+            Text(ok
+                 ? L("Conectado: el widget puede leer tus datos.")
+                 : L("Sin conexión: esta instalación se firmó sin el grupo de apps, así que el widget no puede leer tus datos. Vuelve a instalar con xtool para que el grupo quede incluido."))
+                .font(.footnote).foregroundStyle(.secondary)
+            Text(verbatim: AppGroup.diagnostics)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+        }
+        .padding(.vertical, 2)
     }
 
     private func step(_ n: Int, _ text: String) -> some View {
@@ -223,29 +249,29 @@ struct CalendarSyncView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Sincronizar con Calendario", isOn: Binding(
+                Toggle(L("Sincronizar con Calendario"), isOn: Binding(
                     get: { store.settings.calendarioSync },
                     set: { on in
                         if on { enable() } else { store.setSettings { $0.calendarioSync = false } }
                     }
                 ))
             } footer: {
-                Text("Turniq crea un calendario propio llamado «Turniq» y copia ahí tus turnos (con el PIN del reloj en las notas) y tus días de cobro. No toca tus otros calendarios. Se actualiza solo cada vez que cambias un turno, de 7 días atrás a 60 días adelante.")
+                Text(L("Turniq crea un calendario propio llamado «Turniq» y copia ahí tus turnos (con el PIN del reloj en las notas) y tus días de cobro. No toca tus otros calendarios. Se actualiza solo cada vez que cambias un turno, de 7 días atrás a 60 días adelante."))
             }
 
             if denied {
                 Section {
-                    Button("Abrir Ajustes del iPhone") {
+                    Button(L("Abrir Ajustes del iPhone")) {
                         if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     }
                 } footer: {
-                    Text("Turniq no tiene permiso para usar el Calendario. Actívalo en Ajustes → Turniq → Calendarios → Acceso total.")
+                    Text(L("Turniq no tiene permiso para usar el Calendario. Actívalo en Ajustes → Turniq → Calendarios → Acceso total."))
                 }
             }
 
             if store.settings.calendarioSync {
                 Section {
-                    Button("Sincronizar ahora") { syncNow() }
+                    Button(L("Sincronizar ahora")) { syncNow() }
                     if let message {
                         Text(message).font(.footnote).foregroundStyle(.secondary)
                     }
@@ -253,21 +279,21 @@ struct CalendarSyncView: View {
             }
 
             Section {
-                Button("Quitar el calendario Turniq", role: .destructive) { confirmRemove = true }
+                Button(L("Quitar el calendario Turniq"), role: .destructive) { confirmRemove = true }
             } footer: {
-                Text("Borra el calendario «Turniq» y sus eventos de la app Calendario. Tus turnos dentro de Turniq no se tocan.")
+                Text(L("Borra el calendario «Turniq» y sus eventos de la app Calendario. Tus turnos dentro de Turniq no se tocan."))
             }
         }
-        .navigationTitle("Calendario del iPhone")
+        .navigationTitle(L("Calendario del iPhone"))
         .onAppear { denied = CalendarSync.denied }
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("¿Quitar el calendario «Turniq» del iPhone?", isPresented: $confirmRemove, titleVisibility: .visible) {
-            Button("Quitar", role: .destructive) {
+        .confirmationDialog(L("¿Quitar el calendario «Turniq» del iPhone?"), isPresented: $confirmRemove, titleVisibility: .visible) {
+            Button(L("Quitar"), role: .destructive) {
                 store.setSettings { $0.calendarioSync = false }
                 CalendarSync.removeCalendar()
                 message = nil
             }
-            Button("Cancelar", role: .cancel) {}
+            Button(L("Cancelar"), role: .cancel) {}
         }
     }
 
@@ -283,9 +309,9 @@ struct CalendarSyncView: View {
 
     private func syncNow() {
         if let n = CalendarSync.sync(data: store.data) {
-            message = "Listo: \(n) eventos en el calendario Turniq."
+            message = L("Listo: \(n) eventos en el calendario Turniq.")
         } else {
-            message = "No se pudo sincronizar. Revisa el permiso de Calendarios."
+            message = L("No se pudo sincronizar. Revisa el permiso de Calendarios.")
             denied = CalendarSync.denied
         }
     }

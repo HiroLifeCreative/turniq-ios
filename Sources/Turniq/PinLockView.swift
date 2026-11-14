@@ -18,7 +18,7 @@ struct PinLockView: View {
                 Text(".").foregroundStyle(T.button)
             }
             .font(.turniq(38, .bold))
-            MonoLabel(text: "Escribe tu PIN", color: .white.opacity(0.55))
+            MonoLabel(text: L("Escribe tu PIN"), color: .white.opacity(0.55))
             HStack(spacing: 16) {
                 ForEach(0..<4, id: \.self) { i in
                     Circle()
@@ -27,7 +27,7 @@ struct PinLockView: View {
                 }
             }
             if error {
-                Text("PIN incorrecto").foregroundStyle(T.danger).font(.callout)
+                Text(L("PIN incorrecto")).foregroundStyle(T.danger).font(.callout)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(76)), count: 3), spacing: 14) {
                 ForEach(1..<10, id: \.self) { n in key("\(n)") }
@@ -40,7 +40,7 @@ struct PinLockView: View {
                 }
             }
             if store.settings.biometrico {
-                Button("Usar Face ID / Touch ID") { biometric() }
+                Button(L("Usar Face ID / Touch ID")) { biometric() }
                     .foregroundStyle(T.button)
             }
             Spacer()
@@ -77,7 +77,7 @@ struct PinLockView: View {
         var err: NSError?
         guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &err) else { return }
         ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                           localizedReason: "Desbloquear Turniq") { ok, _ in
+                           localizedReason: L("Desbloquear Turniq")) { ok, _ in
             if ok { DispatchQueue.main.async { onUnlock() } }
         }
     }

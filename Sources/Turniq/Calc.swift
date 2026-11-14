@@ -260,12 +260,28 @@ enum Calc {
 
     // MARK: Formato
 
-    static let months = ["ene", "feb", "mar", "abr", "may", "jun",
-                         "jul", "ago", "sep", "oct", "nov", "dic"]
-    static let monthsLong = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
-                             "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-    static let daysShort = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
-    static let daysLong = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    static var months: [String] {
+        Lang.en
+            ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            : ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+    }
+    static var monthsLong: [String] {
+        Lang.en
+            ? ["January", "February", "March", "April", "May", "June", "July",
+               "August", "September", "October", "November", "December"]
+            : ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
+               "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    }
+    static var daysShort: [String] {
+        Lang.en
+            ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            : ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    }
+    static var daysLong: [String] {
+        Lang.en
+            ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            : ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    }
 
     private static let moneyFmt: NumberFormatter = {
         let f = NumberFormatter()
@@ -304,7 +320,7 @@ enum Calc {
         guard let mins = hmToMin(hm) else { return hm }
         let h = mins / 60, m = mins % 60
         if !format12 { return String(format: "%02d:%02d", h, m) }
-        let suffix = h < 12 ? "a.m." : "p.m."
+        let suffix = Lang.en ? (h < 12 ? "AM" : "PM") : (h < 12 ? "a.m." : "p.m.")
         let h12 = h % 12 == 0 ? 12 : h % 12
         return String(format: "%d:%02d %@", h12, m, suffix)
     }

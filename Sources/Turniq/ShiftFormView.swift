@@ -32,32 +32,32 @@ struct ShiftFormView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Trabajo") {
-                    Picker("Trabajo", selection: $jobId) {
+                Section(L("Trabajo")) {
+                    Picker(L("Trabajo"), selection: $jobId) {
                         ForEach(store.jobs) { j in
                             Text(j.nombre).tag(j.id)
                         }
                     }
-                    Toggle("Día libre", isOn: $esLibre)
+                    Toggle(L("Día libre"), isOn: $esLibre)
                 }
-                Section("Fecha") {
-                    DatePicker("Fecha", selection: $fecha, displayedComponents: [.date])
+                Section(L("Fecha")) {
+                    DatePicker(L("Fecha"), selection: $fecha, displayedComponents: [.date])
                 }
                 if !esLibre {
-                    Section("Horario") {
-                        DatePicker("Entrada", selection: $entrada, displayedComponents: [.hourAndMinute])
-                        Toggle("Sin hora de salida", isOn: $sinSalida)
+                    Section(L("Horario")) {
+                        DatePicker(L("Entrada"), selection: $entrada, displayedComponents: [.hourAndMinute])
+                        Toggle(L("Sin hora de salida"), isOn: $sinSalida)
                         if !sinSalida {
-                            DatePicker("Salida", selection: $salida, displayedComponents: [.hourAndMinute])
+                            DatePicker(L("Salida"), selection: $salida, displayedComponents: [.hourAndMinute])
                             if Calc.isOvernight(entrada: Calc.hhmm(entrada), salida: Calc.hhmm(salida)) {
-                                Text("Termina al día siguiente: \(Calc.shortDate(Calc.addDays(Calc.ymd(fecha), 1)))")
+                                Text(L("Termina al día siguiente: \(Calc.shortDate(Calc.addDays(Calc.ymd(fecha), 1)))"))
                                     .font(.caption).foregroundStyle(T.amber)
                             }
                         }
-                        Stepper("Descanso: \(breakMin) min", value: $breakMin, in: 0...240, step: 5)
+                        Stepper(L("Descanso: \(breakMin) min"), value: $breakMin, in: 0...240, step: 5)
                     }
                     if let job = store.job(id: jobId), !job.estaciones.isEmpty {
-                        Section("Estaciones") {
+                        Section(L("Estaciones")) {
                             ForEach(job.estaciones) { st in
                                 Toggle(st.nombre, isOn: Binding(
                                     get: { estacionesSel.contains(st.id) },
@@ -70,50 +70,50 @@ struct ShiftFormView: View {
                     }
                     if editing != nil {
                         Section {
-                            Toggle("Marqué entrada", isOn: $marcoEntrada)
+                            Toggle(L("Marqué entrada"), isOn: $marcoEntrada)
                             if marcoEntrada {
-                                DatePicker("Entrada real", selection: $entradaReal, displayedComponents: [.hourAndMinute])
-                                Toggle("Marqué salida", isOn: $marcoSalida)
+                                DatePicker(L("Entrada real"), selection: $entradaReal, displayedComponents: [.hourAndMinute])
+                                Toggle(L("Marqué salida"), isOn: $marcoSalida)
                                 if marcoSalida {
-                                    DatePicker("Salida real", selection: $salidaReal, displayedComponents: [.hourAndMinute])
+                                    DatePicker(L("Salida real"), selection: $salidaReal, displayedComponents: [.hourAndMinute])
                                 }
                             }
                         } header: {
-                            Text("Horas trabajadas (reales)")
+                            Text(L("Horas trabajadas (reales)"))
                         } footer: {
-                            Text("Si marcaste, el dinero se calcula con estas horas y no con las programadas.")
+                            Text(L("Si marcaste, el dinero se calcula con estas horas y no con las programadas."))
                         }
                     }
                     Section("Extras") {
-                        TextField("Propinas ($)", text: $propinas)
+                        TextField(L("Propinas ($)"), text: $propinas)
                             .keyboardType(.decimalPad)
-                        TextField("Bono ($)", text: $bono)
+                        TextField(L("Bono ($)"), text: $bono)
                             .keyboardType(.decimalPad)
-                        TextField("Notas", text: $notas, axis: .vertical)
+                        TextField(L("Notas"), text: $notas, axis: .vertical)
                     }
                 }
                 if editing != nil {
                     Section {
-                        Button("Eliminar turno", role: .destructive) { confirmDelete = true }
+                        Button(L("Eliminar turno"), role: .destructive) { confirmDelete = true }
                     }
                 }
             }
-            .navigationTitle(editing == nil ? "Nuevo turno" : "Editar turno")
+            .navigationTitle(editing == nil ? L("Nuevo turno") : L("Editar turno"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { dismiss() }
+                    Button(L("Cancelar")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") { save() }.disabled(jobId.isEmpty)
+                    Button(L("Guardar")) { save() }.disabled(jobId.isEmpty)
                 }
             }
-            .confirmationDialog("¿Eliminar este turno?", isPresented: $confirmDelete, titleVisibility: .visible) {
-                Button("Eliminar", role: .destructive) {
+            .confirmationDialog(L("¿Eliminar este turno?"), isPresented: $confirmDelete, titleVisibility: .visible) {
+                Button(L("Eliminar"), role: .destructive) {
                     if let e = editing { store.deleteShift(id: e.id) }
                     dismiss()
                 }
-                Button("Cancelar", role: .cancel) {}
+                Button(L("Cancelar"), role: .cancel) {}
             }
             .onAppear(perform: load)
         }

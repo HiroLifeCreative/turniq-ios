@@ -31,7 +31,7 @@ enum WidgetBridge {
             guard (end ?? start) > now else { continue }
             let job = jobs[s.jobId]
             items.append(WidgetSnapshot.ShiftItem(
-                id: s.id, jobName: job?.nombre ?? "Turno",
+                id: s.id, jobName: job?.nombre ?? L("Turno"),
                 colorHex: job?.color ?? "#0064E0",
                 start: start, end: end, pin: job?.pinMarcaje))
         }
@@ -53,7 +53,8 @@ enum WidgetBridge {
             weekNet: totals.net, weekHours: totals.hours,
             hideMoney: settings.dineroOculto,
             format12: settings.formatoHora == "12h",
-            shifts: Array(items.prefix(12)), pays: Array(pays.prefix(6)))
+            shifts: Array(items.prefix(12)), pays: Array(pays.prefix(6)),
+            english: Lang.en)
         if snapshot.save() {
             WidgetCenter.shared.reloadAllTimelines()
         }
@@ -88,7 +89,7 @@ enum LiveShift {
         let rate = (job?.sueldoHora ?? 0) * (1 - (job?.taxPct ?? 0) / 100)
         let state = ShiftActivityAttributes.ContentState(
             start: start, scheduledEnd: scheduledEnd,
-            netPerHour: rate, hideMoney: data.settings.dineroOculto)
+            netPerHour: rate, hideMoney: data.settings.dineroOculto, english: Lang.en)
         let content = ActivityContent(state: state, staleDate: nil)
 
         if let current = running.first(where: { $0.attributes.shiftId == s.id }) {
@@ -100,7 +101,7 @@ enum LiveShift {
         end(running)
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = ShiftActivityAttributes(
-            shiftId: s.id, jobName: job?.nombre ?? "Turno",
+            shiftId: s.id, jobName: job?.nombre ?? L("Turno"),
             colorHex: job?.color ?? "#0064E0", pin: job?.pinMarcaje)
         _ = try? Activity<ShiftActivityAttributes>.request(
             attributes: attributes, content: content, pushType: nil)

@@ -19,7 +19,7 @@ struct PaydaysCard: View {
                         Image(systemName: "wallet.pass")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(T.button)
-                        MonoLabel(text: "Próximos cobros")
+                        MonoLabel(text: L("Próximos cobros"))
                     }
                     .padding(.bottom, 4)
                     ForEach(Array(list.enumerated()), id: \.element.id) { idx, p in
@@ -39,7 +39,7 @@ struct PaydaysCard: View {
                     .font(.turniq(15, .bold)).foregroundStyle(T.text).lineLimit(1)
                 Text("\(Calc.weekdayDate(p.payday)) · \(Pay.freq(p.job).label.lowercased())")
                     .font(.turniq(12)).foregroundStyle(T.text2).lineLimit(1)
-                Text("Paga \(Calc.shortDate(p.periodStart)) – \(Calc.shortDate(p.periodEnd)) · \(Calc.fmtHours(p.totals.hours))")
+                Text(L("Paga \(Calc.shortDate(p.periodStart)) – \(Calc.shortDate(p.periodEnd)) · \(Calc.fmtHours(p.totals.hours))"))
                     .font(.turniq(12)).foregroundStyle(T.text3).lineLimit(1)
             }
             Spacer(minLength: 8)
@@ -51,7 +51,7 @@ struct PaydaysCard: View {
                     .font(.turniq(12, .bold))
                     .foregroundStyle(p.daysLeft == 0 ? T.success : T.text2)
                 if !p.closed {
-                    Text("acumulando").font(.turniq(11)).foregroundStyle(T.text3)
+                    Text(L("acumulando")).font(.turniq(11)).foregroundStyle(T.text3)
                 }
             }
         }

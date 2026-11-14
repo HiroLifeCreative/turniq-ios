@@ -121,34 +121,39 @@ enum WFmt {
         return "$" + (moneyFmt.string(from: NSNumber(value: n)) ?? String(format: "%.2f", n))
     }
 
-    static func time(_ d: Date, format12: Bool) -> String {
+    static func time(_ d: Date, format12: Bool, english: Bool = false) -> String {
         let c = Calendar.current.dateComponents([.hour, .minute], from: d)
         let h = c.hour ?? 0, m = c.minute ?? 0
         if !format12 { return String(format: "%02d:%02d", h, m) }
         let h12 = h % 12 == 0 ? 12 : h % 12
-        return String(format: "%d:%02d %@", h12, m, h < 12 ? "a.m." : "p.m.")
+        let suffix = english ? (h < 12 ? "AM" : "PM") : (h < 12 ? "a.m." : "p.m.")
+        return String(format: "%d:%02d %@", h12, m, suffix)
     }
 
     private static let days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"]
     private static let months = ["ene", "feb", "mar", "abr", "may", "jun",
                                  "jul", "ago", "sep", "oct", "nov", "dic"]
+    private static let daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    private static let monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
     /// "Hoy" / "Mañana" / "vie 20 nov"
-    static func day(_ d: Date, relativeTo now: Date) -> String {
+    static func day(_ d: Date, relativeTo now: Date, english: Bool = false) -> String {
         let cal = Calendar.current
         let diff = cal.dateComponents([.day], from: cal.startOfDay(for: now), to: cal.startOfDay(for: d)).day ?? 0
-        if diff == 0 { return "Hoy" }
-        if diff == 1 { return "Mañana" }
+        if diff == 0 { return english ? "Today" : "Hoy" }
+        if diff == 1 { return english ? "Tomorrow" : "Mañana" }
         let c = cal.dateComponents([.weekday, .day, .month], from: d)
-        let wd = days[max(0, min(6, (c.weekday ?? 1) - 1))]
-        let mo = months[max(0, min(11, (c.month ?? 1) - 1))]
-        return "\(wd) \(c.day ?? 1) \(mo)"
+        let wi = max(0, min(6, (c.weekday ?? 1) - 1))
+        let mi = max(0, min(11, (c.month ?? 1) - 1))
+        if english { return "\(daysEn[wi]), \(monthsEn[mi]) \(c.day ?? 1)" }
+        return "\(days[wi]) \(c.day ?? 1) \(months[mi])"
     }
 
-    static func range(_ s: WidgetSnapshot.ShiftItem, format12: Bool) -> String {
-        let a = time(s.start, format12: format12)
+    static func range(_ s: WidgetSnapshot.ShiftItem, format12: Bool, english: Bool = false) -> String {
+        let a = time(s.start, format12: format12, english: english)
         guard let end = s.end else { return a }
-        return "\(a) – \(time(end, format12: format12))"
+        return "\(a) – \(time(end, format12: format12, english: english))"
     }
 }
 
@@ -159,6 +164,10 @@ struct TurniqWidgetView: View {
     var entry: TurniqEntry
 
     private var fmt12: Bool { entry.snapshot?.format12 ?? true }
+    private var en: Bool { entry.snapshot?.english ?? false }
+
+    /// Texto en español o en inglés según el idioma de la app.
+    private func tr(_ es: String, _ english: String) -> String { en ? english : es }
 
     var body: some View {
         switch family {
@@ -181,21 +190,21 @@ struct TurniqWidgetView: View {
     @ViewBuilder
     private var shiftBlock: some View {
         if let s = entry.currentShift {
-            label("En turno")
+            label(tr("En turno", "On shift"))
             jobLine(s)
-            Text("Hasta \(s.end.map { WFmt.time($0, format12: fmt12) } ?? "")")
+            Text(verbatim: tr("Hasta", "Until") + " " + (s.end.map { WFmt.time($0, format12: fmt12, english: en) } ?? ""))
                 .font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.8))
             pinLine(s)
         } else if let s = entry.nextShift {
-            label("Próximo turno")
+            label(tr("Próximo turno", "Next shift"))
             jobLine(s)
-            Text("\(WFmt.day(s.start, relativeTo: entry.date)) · \(WFmt.time(s.start, format12: fmt12))")
+            Text("\(WFmt.day(s.start, relativeTo: entry.date, english: en)) · \(WFmt.time(s.start, format12: fmt12, english: en))")
                 .font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.8))
                 .lineLimit(1).minimumScaleFactor(0.8)
             pinLine(s)
         } else {
-            label("Próximo turno")
-            Text(entry.snapshot == nil ? "Abre Turniq" : "Sin turnos")
+            label(tr("Próximo turno", "Next shift"))
+            Text(verbatim: entry.snapshot == nil ? tr("Abre Turniq", "Open Turniq") : tr("Sin turnos", "No shifts"))
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
         }
     }
@@ -222,7 +231,7 @@ struct TurniqWidgetView: View {
         VStack(alignment: .leading, spacing: 3) {
             shiftBlock
             Spacer(minLength: 0)
-            label("Neto semana")
+            label(tr("Neto semana", "Net this week"))
             Text(WFmt.money(entry.weekNet, hidden: entry.hideMoney))
                 .font(.system(size: 20, weight: .bold)).foregroundStyle(WColor.money)
                 .lineLimit(1).minimumScaleFactor(0.6)
@@ -241,14 +250,14 @@ struct TurniqWidgetView: View {
             Rectangle().fill(.white.opacity(0.12)).frame(width: 1)
 
             VStack(alignment: .leading, spacing: 3) {
-                label("Neto semana")
+                label(tr("Neto semana", "Net this week"))
                 Text(WFmt.money(entry.weekNet, hidden: entry.hideMoney))
                     .font(.system(size: 22, weight: .bold)).foregroundStyle(WColor.money)
                     .lineLimit(1).minimumScaleFactor(0.6)
                 Spacer(minLength: 0)
-                label("Próximo cobro")
+                label(tr("Próximo cobro", "Next payday"))
                 if let p = entry.nextPay {
-                    Text("\(WFmt.day(p.payday, relativeTo: entry.date)) · \(WFmt.money(p.net, hidden: entry.hideMoney))")
+                    Text("\(WFmt.day(p.payday, relativeTo: entry.date, english: en)) · \(WFmt.money(p.net, hidden: entry.hideMoney))")
                         .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
                         .lineLimit(1).minimumScaleFactor(0.7)
                     Text(p.jobName)
@@ -268,17 +277,17 @@ struct TurniqWidgetView: View {
         VStack(alignment: .leading, spacing: 1) {
             if let s = entry.currentShift ?? entry.nextShift {
                 Text(s.jobName).font(.headline).lineLimit(1)
-                Text("\(WFmt.day(s.start, relativeTo: entry.date)) · \(WFmt.range(s, format12: fmt12))")
+                Text("\(WFmt.day(s.start, relativeTo: entry.date, english: en)) · \(WFmt.range(s, format12: fmt12, english: en))")
                     .font(.caption).lineLimit(1).minimumScaleFactor(0.8)
                 if let pin = s.pin, !pin.isEmpty {
                     Text("PIN \(pin)").font(.caption.bold())
                 } else {
-                    Text("Semana: \(WFmt.money(entry.weekNet, hidden: entry.hideMoney))").font(.caption)
+                    Text(verbatim: tr("Semana", "Week") + ": " + WFmt.money(entry.weekNet, hidden: entry.hideMoney)).font(.caption)
                 }
             } else {
                 Text("Turniq").font(.headline)
-                Text("Sin turnos próximos").font(.caption)
-                Text("Semana: \(WFmt.money(entry.weekNet, hidden: entry.hideMoney))").font(.caption)
+                Text(verbatim: tr("Sin turnos próximos", "No upcoming shifts")).font(.caption)
+                Text(verbatim: tr("Semana", "Week") + ": " + WFmt.money(entry.weekNet, hidden: entry.hideMoney)).font(.caption)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -302,9 +311,9 @@ struct TurniqWidgetView: View {
     private var inline: some View {
         Group {
             if let s = entry.nextShift {
-                Text("\(WFmt.day(s.start, relativeTo: entry.date)) \(WFmt.time(s.start, format12: fmt12)) · \(s.jobName)")
+                Text("\(WFmt.day(s.start, relativeTo: entry.date, english: en)) \(WFmt.time(s.start, format12: fmt12, english: en)) · \(s.jobName)")
             } else {
-                Text("Turniq · sin turnos")
+                Text(verbatim: tr("Turniq · sin turnos", "Turniq · no shifts"))
             }
         }
     }

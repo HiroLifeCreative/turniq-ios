@@ -26,7 +26,7 @@ final class LocationOnce: NSObject, ObservableObject, CLLocationManagerDelegate 
         case .notDetermined:
             manager.requestWhenInUseAuthorization()
         case .denied, .restricted:
-            fail("Turniq no tiene permiso de ubicación. Actívalo en Ajustes → Turniq → Ubicación.")
+            fail(L("Turniq no tiene permiso de ubicación. Actívalo en Ajustes → Turniq → Ubicación."))
         default:
             manager.requestLocation()
         }
@@ -44,7 +44,7 @@ final class LocationOnce: NSObject, ObservableObject, CLLocationManagerDelegate 
         case .authorizedWhenInUse, .authorizedAlways:
             manager.requestLocation()
         case .denied, .restricted:
-            fail("Turniq no tiene permiso de ubicación. Actívalo en Ajustes → Turniq → Ubicación.")
+            fail(L("Turniq no tiene permiso de ubicación. Actívalo en Ajustes → Turniq → Ubicación."))
         default:
             break
         }
@@ -54,12 +54,12 @@ final class LocationOnce: NSObject, ObservableObject, CLLocationManagerDelegate 
         guard let coordinate = locations.last?.coordinate, let done = completion else { return }
         busy = false
         completion = nil
-        status = "Ubicación guardada."
+        status = L("Ubicación guardada.")
         done(coordinate)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        fail("No pude obtener tu ubicación. Inténtalo de nuevo.")
+        fail(L("No pude obtener tu ubicación. Inténtalo de nuevo."))
     }
 }
 
@@ -74,7 +74,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     /// Registra el botón del aviso de llegada.
     static func registerCategories() {
         let action = UNNotificationAction(identifier: clockInAction,
-                                          title: "Marcar entrada",
+                                          title: L("Marcar entrada"),
                                           options: [.foreground])
         let category = UNNotificationCategory(identifier: arriveCategory,
                                               actions: [action],

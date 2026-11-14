@@ -25,6 +25,8 @@ enum Notifications {
 
     static func reschedule(data: TurniqData) {
         let center = UNUserNotificationCenter.current()
+        // El botón del aviso de llegada sigue el idioma de la app.
+        NotificationDelegate.registerCategories()
         center.removeAllPendingNotificationRequests()
         let settings = data.settings
         let fmt12 = settings.formatoHora == "12h"
@@ -37,14 +39,14 @@ enum Notifications {
             guard let start = Calc.date(shift.fecha, shift.horaEntrada) else { continue }
             let job = jobs[shift.jobId]
             let hora = Calc.fmtTime(shift.horaEntrada, format12: fmt12)
-            var body = "Tu turno empieza a las \(hora)."
-            if let pin = job?.pinMarcaje, !pin.isEmpty { body += " PIN del reloj: \(pin)." }
+            var body = L("Tu turno empieza a las \(hora).")
+            if let pin = job?.pinMarcaje, !pin.isEmpty { body += L(" PIN del reloj: \(pin).") }
             for aviso in settings.avisosMin {
                 let fire = start.addingTimeInterval(TimeInterval(-aviso * 60))
                 guard fire > now else { continue }
                 pending.append((fire, "turniq-\(shift.id)-\(aviso)",
-                                "Turno en \(job?.nombre ?? "Turniq")",
-                                aviso == 0 ? "Es hora de tu turno (\(hora))." : body))
+                                L("Turno en \(job?.nombre ?? "Turniq")"),
+                                aviso == 0 ? L("Es hora de tu turno (\(hora)).") : body))
             }
         }
         pending.sort { $0.fire < $1.fire }
@@ -68,9 +70,9 @@ enum Notifications {
                 region.notifyOnEntry = true
                 region.notifyOnExit = false
                 let content = UNMutableNotificationContent()
-                content.title = "¿Llegaste a \(job.nombre)?"
-                var body = "Toca «Marcar entrada» para empezar tu turno."
-                if let pin = job.pinMarcaje, !pin.isEmpty { body += " PIN del reloj: \(pin)." }
+                content.title = L("¿Llegaste a \(job.nombre)?")
+                var body = L("Toca «Marcar entrada» para empezar tu turno.")
+                if let pin = job.pinMarcaje, !pin.isEmpty { body += L(" PIN del reloj: \(pin).") }
                 content.body = body
                 content.sound = .default
                 content.categoryIdentifier = NotificationDelegate.arriveCategory
@@ -88,10 +90,10 @@ enum Notifications {
             for pay in Pay.upcoming(job, shifts: data.shifts, settings: settings, count: 2) {
                 guard let fire = Calc.date(pay.payday, "09:00"), fire > now else { continue }
                 let body = pay.closed && pay.totals.net > 0 && !settings.dineroOculto
-                    ? "Hoy cobras aproximadamente \(Calc.money(pay.totals.net)) (neto) por \(Calc.shortDate(pay.periodStart)) – \(Calc.shortDate(pay.periodEnd))."
-                    : "Hoy te pagan en \(job.nombre). Abre Turniq para ver cuánto."
+                    ? L("Hoy cobras aproximadamente \(Calc.money(pay.totals.net)) (neto) por \(Calc.shortDate(pay.periodStart)) – \(Calc.shortDate(pay.periodEnd)).")
+                    : L("Hoy te pagan en \(job.nombre). Abre Turniq para ver cuánto.")
                 add(center, id: "turniq-cobro-\(job.id)-\(pay.payday)",
-                    title: "Día de cobro · \(job.nombre)", body: body, fire: fire)
+                    title: L("Día de cobro · \(job.nombre)"), body: body, fire: fire)
             }
         }
     }

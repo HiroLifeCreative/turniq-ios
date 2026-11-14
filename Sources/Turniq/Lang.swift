@@ -1,0 +1,314 @@
+import Foundation
+
+// MARK: - Idioma (español / inglés)
+// Los textos viven en español en el código. `L("…")` devuelve el
+// mismo texto o su traducción al inglés según Ajustes → Apariencia →
+// Idioma. Las interpolaciones se conservan: L("Hola, \\(nombre)")
+// busca la clave "Hola, %@" y vuelve a colocar los valores en orden.
+
+enum Lang {
+    /// true = inglés. Lo actualiza Store cada vez que cambian los ajustes.
+    static var en = false
+}
+
+/// Texto con sus valores interpolados separados.
+struct LS: ExpressibleByStringInterpolation {
+    var key: String
+    var args: [String]
+
+    init(stringLiteral value: String) {
+        key = value
+        args = []
+    }
+
+    init(stringInterpolation: StringInterpolation) {
+        key = stringInterpolation.key
+        args = stringInterpolation.args
+    }
+
+    struct StringInterpolation: StringInterpolationProtocol {
+        var key = ""
+        var args: [String] = []
+
+        init(literalCapacity: Int, interpolationCount: Int) {}
+
+        mutating func appendLiteral(_ literal: String) {
+            key += literal
+        }
+
+        mutating func appendInterpolation<T>(_ value: T) {
+            key += "%@"
+            args.append(String(describing: value))
+        }
+    }
+}
+
+/// Traduce (si la app está en inglés) y coloca los valores.
+func L(_ s: LS) -> String {
+    let format = Lang.en ? (enStrings[s.key] ?? s.key) : s.key
+    if s.args.isEmpty { return format }
+    let parts = format.components(separatedBy: "%@")
+    var out = ""
+    for (i, part) in parts.enumerated() {
+        out += part
+        if i < parts.count - 1 {
+            out += i < s.args.count ? s.args[i] : ""
+        }
+    }
+    return out
+}
+
+/// Español → inglés. Si falta una clave se muestra el texto en español.
+let enStrings: [String: String] = [
+    " PIN del reloj: %@.": " Time clock PIN: %@.",
+    " · %@ hora extra": " · %@ overtime",
+    " · %@ sem. después": " · %@ wk later",
+    "%@ bruto": "%@ gross",
+    "%@ de %@": "%@ of %@",
+    "%@ de hora extra": "%@ of overtime",
+    "%@ semanas después": "%@ weeks later",
+    "%@ turnos": "%@ shifts",
+    "%@ turnos · %@": "%@ shifts · %@",
+    "%@ · En vivo": "%@ · Live",
+    "%@ · próximo %@": "%@ · next %@",
+    "%@% de la meta completada": "%@% of goal reached",
+    "+ Agregar trabajo": "+ Add job",
+    "+ Añadir turno": "+ Add shift",
+    "+ Trabajos": "+ Jobs",
+    "1 día antes": "1 day before",
+    "1 hora antes": "1 hour before",
+    "1 turno": "1 shift",
+    "15 min antes": "15 min before",
+    "30 min antes": "30 min before",
+    "Abre la app Atajos y toca + para crear uno nuevo.": "Open the Shortcuts app and tap + to create a new one.",
+    "Abrir Ajustes del iPhone": "Open iPhone Settings",
+    "Actividad en Vivo al marcar entrada": "Live Activity when I clock in",
+    "Actividad en Vivo: contador del turno en curso en la pantalla de bloqueo y en la Dynamic Island.": "Live Activity: a timer for the shift in progress on the Lock Screen and in the Dynamic Island.",
+    "Actualizar con mi ubicación actual": "Update with my current location",
+    "Agregar trabajo": "Add job",
+    "Ajustes": "Settings",
+    "Al momento": "At start time",
+    "Apariencia": "Appearance",
+    "Atajos, Siri y Widgets": "Shortcuts, Siri & Widgets",
+    "Avisar al llegar al trabajo": "Alert me when I arrive at work",
+    "Avisarme el día de cobro": "Notify me on payday",
+    "Aviso al llegar": "Arrival alert",
+    "Aviso al llegar al trabajo, con botón para marcar la entrada.": "Arrival alert at work, with a button to clock in.",
+    "Aviso la mañana del día de cobro.": "Notification on the morning of payday.",
+    "Avisos de turno": "Shift reminders",
+    "Añade la acción «Abrir URL» y pega turniq://marcar.": "Add the “Open URLs” action and paste turniq://marcar.",
+    "Añade tus trabajos y después programa tus turnos.": "Add your jobs, then schedule your shifts.",
+    "Añadir": "Add",
+    "Aún no hay turnos registrados": "No shifts recorded yet",
+    "BRUTO": "GROSS",
+    "Bono ($)": "Bonus ($)",
+    "Borra el calendario «Turniq» y sus eventos de la app Calendario. Tus turnos dentro de Turniq no se tocan.": "Deletes the “Turniq” calendar and its events from the Calendar app. Your shifts inside Turniq aren't touched.",
+    "Borrar todo": "Erase everything",
+    "Borrar todos los datos": "Erase all data",
+    "Botón de Acción: Ajustes → Botón de Acción → Atajo → elige tu atajo.": "Action Button: Settings → Action Button → Shortcut → pick your shortcut.",
+    "Bruto": "Gross",
+    "Busca Turniq y elige el tamaño pequeño o mediano.": "Search for Turniq and pick the small or medium size.",
+    "Buscando tu ubicación…": "Finding your location…",
+    "Cada 2 semanas": "Every 2 weeks",
+    "Cada semana": "Every week",
+    "Cada trabajo puede tener su propio ritmo (cada semana o cada 2 semanas) y su día: se cambia en Trabajos → Editar → Cobro. Este día se usa para los trabajos que no lo tengan.": "Each job can have its own schedule (every week or every 2 weeks) and its own day: change it in Jobs → Edit → Pay. This day is used for jobs that don't have one.",
+    "Calendario del iPhone": "iPhone Calendar",
+    "Cancelar": "Cancel",
+    "Cierre automático": "Auto close",
+    "Cierre automático de turnos abiertos a la hora tope configurada.": "Open shifts close automatically at the configured cutoff time.",
+    "Cobro": "Pay",
+    "Cobro después de trabajar": "Paid after working",
+    "Cobro por trabajo: cada empleo se configura para pagar cada semana o cada 2 semanas, con su día de cobro y su espera (la semana siguiente o 2 semanas después de trabajar).": "Pay per job: each job can pay every week or every 2 weeks, with its own payday and wait (the following week or 2 weeks after working).",
+    "Cobro · %@": "Payday · %@",
+    "Conectado: el widget puede leer tus datos.": "Connected: the widget can read your data.",
+    "Corrección: los widgets ahora encuentran los datos de la app sin importar cómo se firmó.": "Fix: widgets now find the app's data however the app was signed.",
+    "Creado por Turniq": "Created by Turniq",
+    "Crear el atajo (una sola vez)": "Create the shortcut (once)",
+    "Datos": "Data",
+    "Desarrollado por Nelson Herrera": "Developed by Nelson Herrera",
+    "Desbloquear Turniq": "Unlock Turniq",
+    "Descanso: %@ min": "Break: %@ min",
+    "Dinero oculto": "Hide money",
+    "Diseño igualado con Android: encabezado por pantalla, héroe con control de privacidad y reloj en vivo, tarjetas de turno con estado por color, Ganancias por semana, mes y año.": "Design matched to Android: per-screen header, hero card with privacy control and live timer, shift cards with color status, Earnings by week, month and year.",
+    "Duplicar": "Duplicate",
+    "Duplicar a la próxima semana": "Duplicate to next week",
+    "Duplicar turno": "Duplicate shift",
+    "Día de cobro": "Payday",
+    "Día de cobro general": "Default payday",
+    "Día de cobro · %@": "Payday · %@",
+    "Día libre": "Day off",
+    "Editar": "Edit",
+    "Editar entrada": "Edit clock-in",
+    "Editar entrada · %@": "Edit clock-in · %@",
+    "Editar trabajo": "Edit job",
+    "Editar turno": "Edit shift",
+    "Ej. 2001": "E.g. 2001",
+    "El PIN que marcas en el reloj de este trabajo. Turniq te lo muestra al marcar entrada, para que no se te olvide.": "The PIN you enter on this job's time clock. Turniq shows it when you clock in so you don't forget it.",
+    "El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone.": "Backups are compatible with Turniq for Android: what you export in one app can be imported in the other. Turniq also saves a daily copy on its own (the last 14) in the Files app → On My iPhone → Turniq → Respaldos, which is also included in your iPhone's iCloud backup.",
+    "Elige cualquier fecha en que este trabajo te pagó o te va a pagar (por ejemplo tu último cheque). Turniq calcula los demás cobros cada 14 días.\n%@": "Pick any date this job paid you or will pay you (for example your last paycheck). Turniq works out the other paydays every 14 days.\n%@",
+    "Eliminar": "Delete",
+    "Eliminar turno": "Delete shift",
+    "En %@ días": "In %@ days",
+    "En curso": "In progress",
+    "En iPhone los avisos son notificaciones con sonido; Apple no permite alarmas a pantalla completa a otras apps.": "On iPhone, reminders are notifications with sound; Apple doesn't allow full-screen alarms from other apps.",
+    "Enlaces de Turniq": "Turniq links",
+    "Enlaces para Atajos, Siri y el Botón de Acción: marcar entrada y salida sin buscar la app.": "Links for Shortcuts, Siri and the Action Button: clock in and out without looking for the app.",
+    "Entrada": "Start",
+    "Entrada marcada en %@ a las %@.": "Clocked in at %@ at %@.",
+    "Entrada real": "Actual clock-in",
+    "Es hora de tu turno (%@).": "It's time for your shift (%@).",
+    "Escribe tu PIN": "Enter your PIN",
+    "Estaciones": "Stations",
+    "Estado del widget": "Widget status",
+    "Exportar respaldo (JSON)": "Export backup (JSON)",
+    "Fecha": "Date",
+    "Formato de hora": "Time format",
+    "Ganancias": "Earnings",
+    "Guardar": "Save",
+    "HORA EXTRA · POR TRABAJO": "OVERTIME · PER JOB",
+    "HORAS": "HOURS",
+    "HOY": "TODAY",
+    "Hola": "Hi",
+    "Hola, %@": "Hi, %@",
+    "Hora extra después de (h/sem)": "Overtime after (h/week)",
+    "Horario": "Schedule",
+    "Horario pasado": "Past shift",
+    "Horas": "Hours",
+    "Horas trabajadas (reales)": "Hours worked (actual)",
+    "Hoy": "Today",
+    "Hoy cobras aproximadamente %@ (neto) por %@ – %@.": "Today you get about %@ (net) for %@ – %@.",
+    "Hoy te pagan en %@. Abre Turniq para ver cuánto.": "Payday at %@ today. Open Turniq to see how much.",
+    "Idioma: inglés o español, en Ajustes → Apariencia.": "Language: English or Spanish, in Settings → Appearance.",
+    "Importar respaldo": "Import backup",
+    "Inicio": "Home",
+    "La hora extra se cuenta por cada trabajo por separado, nunca sumando todos tus trabajos. Si un turno queda abierto, se cierra solo a la hora de cierre automático del día siguiente.": "Overtime is counted for each job separately, never by adding all your jobs together. If a shift is left open, it closes on its own at the auto-close time the next day.",
+    "La semana siguiente": "The following week",
+    "Las horas reales marcadas mandan en el cálculo del dinero y se pueden corregir al editar el turno.": "Actual clocked hours drive the money calculation and can be corrected when editing a shift.",
+    "Libre": "Off",
+    "Listo": "Done",
+    "Listo: %@ eventos en el calendario Turniq.": "Done: %@ events in the Turniq calendar.",
+    "Los respaldos de Android se importan sin errores aunque les falten campos.": "Android backups import without errors even when fields are missing.",
+    "Los widgets muestran tu próximo turno con su PIN, el neto de la semana y tu próximo cobro. Se actualizan cada vez que abres Turniq o cambias un turno. La Actividad en Vivo aparece sola al marcar entrada.": "Widgets show your next shift with its PIN, this week's net and your next payday. They update each time you open Turniq or change a shift. The Live Activity appears on its own when you clock in.",
+    "Mantén pulsada la pantalla de inicio y toca Editar → Añadir widget.": "Touch and hold the Home Screen and tap Edit → Add Widget.",
+    "Mantén pulsado un enlace para copiarlo.": "Touch and hold a link to copy it.",
+    "Marca entrada si no estás trabajando, o salida si ya tienes un turno en curso.": "Clocks in if you're not working, or out if you have a shift in progress.",
+    "Marca la entrada del turno de hoy más cercano a la hora actual.": "Clocks in to today's shift closest to the current time.",
+    "Marca la salida del turno en curso.": "Clocks out of the shift in progress.",
+    "Marcar entrada": "Clock in",
+    "Marcar salida": "Clock out",
+    "Marqué entrada": "I clocked in",
+    "Marqué salida": "I clocked out",
+    "Mañana": "Tomorrow",
+    "Me pagan": "I get paid",
+    "Meta semanal": "Weekly goal",
+    "Meta semanal ($)": "Weekly goal ($)",
+    "Modo oscuro": "Dark mode",
+    "Mostrar": "Show",
+    "Mostrar hora extra": "Show overtime",
+    "Mostrar meta": "Show goal",
+    "Multiplicador": "Multiplier",
+    "Más": "More",
+    "NETO": "NET",
+    "NETO TRABAJADO · ESTA SEMANA": "NET EARNED · THIS WEEK",
+    "Neto": "Net",
+    "Neto estimado": "Estimated net",
+    "Neto · con taxes": "Net · after taxes",
+    "No hay ningún turno en curso.": "There's no shift in progress.",
+    "No marcado": "Not clocked in",
+    "No pude importar ese archivo.": "Couldn't import that file.",
+    "No pude obtener tu ubicación. Inténtalo de nuevo.": "Couldn't get your location. Try again.",
+    "No se pudo sincronizar. Revisa el permiso de Calendarios.": "Couldn't sync. Check the Calendars permission.",
+    "No tienes turnos pendientes para hoy.": "You have no pending shifts today.",
+    "Nombre": "Name",
+    "Notas": "Notes",
+    "Novedades": "What's new",
+    "Nueva estación": "New station",
+    "Nuevo turno": "New shift",
+    "Ocultar": "Hide",
+    "PIN de 4 dígitos": "4-digit PIN",
+    "PIN del reloj (opcional)": "Time clock PIN (optional)",
+    "PIN del reloj: %@": "Time clock PIN: %@",
+    "PIN incorrecto": "Wrong PIN",
+    "Paga %@ – %@ · %@": "Pays %@ – %@ · %@",
+    "Pantalla de inicio: en el atajo, Compartir → Añadir a pantalla de inicio.": "Home Screen: in the shortcut, Share → Add to Home Screen.",
+    "Para la pantalla de bloqueo: mantenla pulsada → Personalizar → Añadir widgets → Turniq.": "For the Lock Screen: touch and hold it → Customize → Add Widgets → Turniq.",
+    "Perfil": "Profile",
+    "Periodo: %@ – %@\nCreado por Turniq": "Period: %@ – %@\nCreated by Turniq",
+    "Ponle un nombre fácil de decir, por ejemplo «Marcar turno».": "Give it a name that's easy to say, for example “Clock shift”.",
+    "Por año": "Per year",
+    "Por semana": "Per week",
+    "Por trabajo": "Per job",
+    "Primera versión nativa para iPhone: Inicio, Semana, Trabajos, Ganancias y Ajustes.": "First native iPhone version: Home, Week, Jobs, Earnings and Settings.",
+    "Programa tus turnos en la pestaña Semana.": "Schedule your shifts in the Week tab.",
+    "Programadas": "Scheduled",
+    "Propinas ($)": "Tips ($)",
+    "Próximamente": "Upcoming",
+    "Próximo cobro: %@. Ese día te pagan lo trabajado del %@ al %@. Si no coincide con tu cheque, cambia «Cobro después de trabajar».": "Next payday: %@. That day you get paid for work from %@ to %@. If that doesn't match your paycheck, change “Paid after working”.",
+    "Próximos cobros": "Upcoming paydays",
+    "Próximos turnos": "Upcoming shifts",
+    "Quitar": "Remove",
+    "Quitar PIN": "Remove PIN",
+    "Quitar el calendario Turniq": "Remove the Turniq calendar",
+    "Quitar ubicación": "Remove location",
+    "Registrado actualmente": "Recorded so far",
+    "Respaldo automático diario en la app Archivos.": "Automatic daily backup in the Files app.",
+    "Respaldo importado.": "Backup imported.",
+    "Salida": "End",
+    "Salida %@ · %@%": "Ends %@ · %@%",
+    "Salida marcada en %@ a las %@.": "Clocked out of %@ at %@.",
+    "Salida real": "Actual clock-out",
+    "Seguridad": "Security",
+    "Semana": "Week",
+    "Si marcaste, el dinero se calcula con estas horas y no con las programadas.": "If you clocked in, the money is calculated with these hours instead of the scheduled ones.",
+    "Sin conexión: esta instalación se firmó sin el grupo de apps, así que el widget no puede leer tus datos. Vuelve a instalar con xtool para que el grupo quede incluido.": "Not connected: this install was signed without the app group, so the widget can't read your data. Reinstall with xtool so the group is included.",
+    "Sin hora de salida": "No end time",
+    "Sincronización con el Calendario del iPhone: turnos y días de cobro en un calendario propio llamado Turniq.": "iPhone Calendar sync: shifts and paydays in a separate calendar called Turniq.",
+    "Sincronizar ahora": "Sync now",
+    "Sincronizar con Calendario": "Sync with Calendar",
+    "Siri: di «Oye Siri, Marcar turno».": "Siri: say “Hey Siri, Clock shift”.",
+    "Sueldo por hora ($)": "Hourly wage ($)",
+    "TOTAL SEMANAL": "WEEKLY TOTAL",
+    "TOTALES DEL MES": "MONTH TOTALS",
+    "TRABAJADAS": "WORKED",
+    "Tarjeta Próximos cobros en Inicio y Ganancias: fecha de cada cobro, periodo que paga y monto neto.": "Upcoming paydays card in Home and Earnings: date of each payday, the period it covers and the net amount.",
+    "Termina al día siguiente: %@": "Ends the next day: %@",
+    "Toca «Marcar entrada» para empezar tu turno.": "Tap “Clock in” to start your shift.",
+    "Todavía no tienes trabajos. Crea el primero con el botón de arriba.": "You don't have any jobs yet. Create the first one with the button above.",
+    "Trabajando": "Working",
+    "Trabajo": "Job",
+    "Trabajos": "Jobs",
+    "Tu nombre": "Your name",
+    "Tu semana empieza aquí": "Your week starts here",
+    "Tu turno empieza a las %@.": "Your shift starts at %@.",
+    "Tu turno empieza en %@": "Your shift starts in %@",
+    "Turniq crea un calendario propio llamado «Turniq» y copia ahí tus turnos (con el PIN del reloj en las notas) y tus días de cobro. No toca tus otros calendarios. Se actualiza solo cada vez que cambias un turno, de 7 días atrás a 60 días adelante.": "Turniq creates its own calendar called “Turniq” and copies your shifts (with the time clock PIN in the notes) and your paydays there. It doesn't touch your other calendars. It updates on its own every time you change a shift, from 7 days back to 60 days ahead.",
+    "Turniq no tiene permiso de ubicación. Actívalo en Ajustes → Turniq → Ubicación.": "Turniq doesn't have location permission. Turn it on in Settings → Turniq → Location.",
+    "Turniq no tiene permiso para usar el Calendario. Actívalo en Ajustes → Turniq → Calendarios → Acceso total.": "Turniq doesn't have Calendar permission. Turn it on in Settings → Turniq → Calendars → Full Access.",
+    "Turno": "Shift",
+    "Turno en %@": "Shift at %@",
+    "Tócalo estando en el trabajo. Los días que tengas turno ahí, Turniq te avisa al llegar para que marques la entrada.": "Tap it while you're at work. On days you have a shift there, Turniq alerts you on arrival so you can clock in.",
+    "Ubicación del trabajo guardada": "Work location saved",
+    "Ubicación guardada.": "Location saved.",
+    "Un día de cobro": "A payday date",
+    "Usar Face ID / Touch ID": "Use Face ID / Touch ID",
+    "Usar mi ubicación actual": "Use my current location",
+    "Usarlo": "Use it",
+    "Widgets para la pantalla de inicio y la pantalla de bloqueo: próximo turno con su PIN, neto de la semana y próximo cobro.": "Widgets for the Home Screen and Lock Screen: next shift with its PIN, this week's net and next payday.",
+    "Ya tienes un turno en curso en %@.": "You already have a shift in progress at %@.",
+    "acumulando": "in progress",
+    "sin taxes": "before taxes",
+    "tu trabajo": "your job",
+    "vs semana anterior: %@%@%": "vs last week: %@%@%",
+    "¡Tu turno empieza ya!": "Your shift starts now!",
+    "© 2026 HiroLifeStudio · Todos los derechos reservados": "© 2026 HiroLifeStudio · All rights reserved",
+    "¿Borrar TODOS los datos de Turniq?": "Erase ALL Turniq data?",
+    "¿Duplicar los %@ turnos de esta semana a la siguiente?": "Duplicate this week's %@ shifts to next week?",
+    "¿Eliminar este trabajo y sus turnos?": "Delete this job and its shifts?",
+    "¿Eliminar este turno?": "Delete this shift?",
+    "¿Llegaste a %@?": "Arrived at %@?",
+    "¿Marcaste en el reloj del trabajo y olvidaste marcar en la app? Pon la hora real: el contador y el dinero se recalculan al momento.": "Clocked in at work but forgot to do it in the app? Set the real time: the timer and the money update right away.",
+    "¿Quitar el calendario «Turniq» del iPhone?": "Remove the “Turniq” calendar from this iPhone?",
+    "Ícono de la app en la pantalla de inicio del iPhone.": "App icon on the iPhone Home Screen.",
+    "⚠️ Misma hora": "⚠️ Same time",
+    "✓ Semana duplicada": "✓ Week duplicated",
+]

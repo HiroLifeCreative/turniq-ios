@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.2.0, 13 nov 2026)
+## Estado (v1.2.1, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -55,6 +55,22 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
 
+**Nuevo en 1.2.1**
+
+- **Inglés y español** (`Lang.swift`): los textos están en español en
+  el código y `L("…")` devuelve su traducción cuando el idioma es
+  inglés (Ajustes → Apariencia → Idioma). La tabla `enStrings` va de
+  español a inglés; si falta una clave se muestra el español. Las
+  interpolaciones se conservan (`L("Hola, \(nombre)")` busca
+  `"Hola, %@"`). El widget y la Actividad en Vivo reciben el idioma
+  en sus datos.
+- **Widget sin datos («Abre Turniq»)**: el grupo de apps ya no se
+  adivina con una sola regla. `AppGroup` prueba, en orden, los grupos
+  que concede el perfil de firma (`embedded.mobileprovision`),
+  `group.` + id de la app y el id declarado, y usa el primero que
+  exista. Más → Atajos, Siri y Widgets muestra el estado y los
+  identificadores para diagnosticar.
+
 **Nuevo en 1.2.0**
 
 - **Widgets** (`Sources/TurniqWidget`, extensión declarada en
@@ -92,7 +108,7 @@ Android (`version`, `exportedAt`).
 todos los archivos. Falta la primera compilación real con `xtool dev`.
 
 Pendiente: Plantillas, reportes PDF/CSV, calendario
-mensual, Estadísticas, inglés.
+mensual, Estadísticas.
 
 **Nota iOS:** Apple no permite alarmas a pantalla completa de
 terceros; los avisos son notificaciones con sonido.

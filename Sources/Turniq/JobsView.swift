@@ -11,7 +11,7 @@ struct JobsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 8) {
-                PrimaryButton(title: "+ Agregar trabajo", color: T.primary, textColor: .white) {
+                PrimaryButton(title: L("+ Agregar trabajo"), color: T.primary, textColor: .white) {
                     creating = true
                 }
                 .padding(.bottom, 4)
@@ -20,7 +20,7 @@ struct JobsView: View {
                     jobCard(job)
                 }
                 if store.jobs.isEmpty {
-                    Text("Todavía no tienes trabajos. Crea el primero con el botón de arriba.")
+                    Text(L("Todavía no tienes trabajos. Crea el primero con el botón de arriba."))
                         .font(.turniq(14)).foregroundStyle(T.text3)
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 16)
@@ -32,15 +32,15 @@ struct JobsView: View {
         .sheet(item: $editing) { j in JobFormView(editing: j) }
         .sheet(isPresented: $creating) { JobFormView(editing: nil) }
         .confirmationDialog(
-            "¿Eliminar este trabajo y sus turnos?",
+            L("¿Eliminar este trabajo y sus turnos?"),
             isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Eliminar", role: .destructive) {
+            Button(L("Eliminar"), role: .destructive) {
                 if let j = confirmDelete { store.deleteJob(id: j.id) }
                 confirmDelete = nil
             }
-            Button("Cancelar", role: .cancel) { confirmDelete = nil }
+            Button(L("Cancelar"), role: .cancel) { confirmDelete = nil }
         }
     }
 
@@ -59,18 +59,18 @@ struct JobsView: View {
                         .font(.turniq(17, .bold)).foregroundStyle(T.text).lineLimit(1)
                     Text(detail)
                         .font(.turniq(12)).foregroundStyle(T.text2)
-                    Label("\(Pay.summary(job, settings: store.settings)) · próximo \(Calc.shortDate(next))",
+                    Label(L("\(Pay.summary(job, settings: store.settings)) · próximo \(Calc.shortDate(next))"),
                           systemImage: "wallet.pass")
                         .font(.turniq(12)).foregroundStyle(T.text3)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 Button { editing = job } label: {
-                    Text("Editar").font(.turniq(14, .bold)).foregroundStyle(T.text2)
+                    Text(L("Editar")).font(.turniq(14, .bold)).foregroundStyle(T.text2)
                 }
                 .buttonStyle(.plain)
                 Button { confirmDelete = job } label: {
-                    Text("Eliminar").font(.turniq(14, .bold)).foregroundStyle(T.danger)
+                    Text(L("Eliminar")).font(.turniq(14, .bold)).foregroundStyle(T.danger)
                 }
                 .buttonStyle(.plain)
             }
@@ -124,14 +124,14 @@ struct JobFormView: View {
         let j = draft
         let next = Pay.nextPayday(j, settings: store.settings, from: Calc.todayYmd())
         let p = Pay.period(j, payday: next)
-        return "Próximo cobro: \(Calc.weekdayDate(next)). Ese día te pagan lo trabajado del \(Calc.shortDate(p.start)) al \(Calc.shortDate(p.end)). Si no coincide con tu cheque, cambia «Cobro después de trabajar»."
+        return L("Próximo cobro: \(Calc.weekdayDate(next)). Ese día te pagan lo trabajado del \(Calc.shortDate(p.start)) al \(Calc.shortDate(p.end)). Si no coincide con tu cheque, cambia «Cobro después de trabajar».")
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Trabajo") {
-                    TextField("Nombre", text: $nombre)
+                Section(L("Trabajo")) {
+                    TextField(L("Nombre"), text: $nombre)
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Color").font(.caption).foregroundStyle(.secondary)
                         HStack(spacing: 8) {
@@ -145,7 +145,7 @@ struct JobFormView: View {
                         }
                     }
                     .padding(.vertical, 4)
-                    LabeledContent("Sueldo por hora ($)") {
+                    LabeledContent(L("Sueldo por hora ($)")) {
                         TextField("15", text: $sueldo)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -158,80 +158,80 @@ struct JobFormView: View {
                 }
 
                 Section {
-                    Picker("Me pagan", selection: $freq) {
+                    Picker(L("Me pagan"), selection: $freq) {
                         ForEach(PayFreq.allCases) { f in
                             Text(f.label).tag(f)
                         }
                     }
                     .pickerStyle(.segmented)
                     if freq == .semanal {
-                        Picker("Día de cobro", selection: $payDay) {
+                        Picker(L("Día de cobro"), selection: $payDay) {
                             ForEach(0..<7, id: \.self) { i in
                                 Text(Calc.daysLong[i]).tag(i)
                             }
                         }
                     } else {
-                        DatePicker("Un día de cobro", selection: $anchor, displayedComponents: [.date])
+                        DatePicker(L("Un día de cobro"), selection: $anchor, displayedComponents: [.date])
                     }
-                    Picker("Cobro después de trabajar", selection: $lag) {
+                    Picker(L("Cobro después de trabajar"), selection: $lag) {
                         ForEach(1...3, id: \.self) { w in
                             Text(Pay.lagLabel(w)).tag(w)
                         }
                     }
                 } header: {
-                    Text("Cobro")
+                    Text(L("Cobro"))
                 } footer: {
                     Text(freq == .quincenal
-                         ? "Elige cualquier fecha en que este trabajo te pagó o te va a pagar (por ejemplo tu último cheque). Turniq calcula los demás cobros cada 14 días.\n\(payPreview)"
+                         ? L("Elige cualquier fecha en que este trabajo te pagó o te va a pagar (por ejemplo tu último cheque). Turniq calcula los demás cobros cada 14 días.\n\(payPreview)")
                          : payPreview)
                 }
 
                 Section {
                     if lat != nil {
-                        Label("Ubicación del trabajo guardada", systemImage: "checkmark.circle.fill")
+                        Label(L("Ubicación del trabajo guardada"), systemImage: "checkmark.circle.fill")
                             .foregroundStyle(T.success)
-                        Button("Actualizar con mi ubicación actual") { askLocation() }
-                        Button("Quitar ubicación", role: .destructive) {
+                        Button(L("Actualizar con mi ubicación actual")) { askLocation() }
+                        Button(L("Quitar ubicación"), role: .destructive) {
                             lat = nil
                             lon = nil
                         }
                     } else {
                         Button { askLocation() } label: {
-                            Label("Usar mi ubicación actual", systemImage: "location.fill")
+                            Label(L("Usar mi ubicación actual"), systemImage: "location.fill")
                         }
                     }
                     if locator.busy {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text("Buscando tu ubicación…").font(.footnote).foregroundStyle(.secondary)
+                            Text(L("Buscando tu ubicación…")).font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                     if let status = locator.status, lat == nil {
                         Text(status).font(.footnote).foregroundStyle(.secondary)
                     }
                 } header: {
-                    Text("Aviso al llegar")
+                    Text(L("Aviso al llegar"))
                 } footer: {
-                    Text("Tócalo estando en el trabajo. Los días que tengas turno ahí, Turniq te avisa al llegar para que marques la entrada.")
+                    Text(L("Tócalo estando en el trabajo. Los días que tengas turno ahí, Turniq te avisa al llegar para que marques la entrada."))
                 }
 
                 Section {
-                    TextField("Ej. 2001", text: $pinReloj)
+                    TextField(L("Ej. 2001"), text: $pinReloj)
                         .keyboardType(.numberPad)
                 } header: {
-                    Text("PIN del reloj (opcional)")
+                    Text(L("PIN del reloj (opcional)"))
                 } footer: {
-                    Text("El PIN que marcas en el reloj de este trabajo. Turniq te lo muestra al marcar entrada, para que no se te olvide.")
+                    Text(L("El PIN que marcas en el reloj de este trabajo. Turniq te lo muestra al marcar entrada, para que no se te olvide."))
                 }
 
-                Section("Estaciones") {
+                Section(L("Estaciones")) {
                     ForEach(estaciones) { st in
                         Text(st.nombre)
                     }
                     .onDelete { estaciones.remove(atOffsets: $0) }
                     HStack {
-                        TextField("Nueva estación", text: $nuevaEstacion)
-                        Button("Añadir") {
+                        TextField(L("Nueva estación"), text: $nuevaEstacion)
+                        Button(L("Añadir")) {
                             let n = nuevaEstacion.trimmingCharacters(in: .whitespaces)
                             if !n.isEmpty {
                                 estaciones.append(Station(id: UUID().uuidString, nombre: n))
@@ -242,12 +242,12 @@ struct JobFormView: View {
                     }
                 }
             }
-            .navigationTitle(editing == nil ? "Agregar trabajo" : "Editar trabajo")
+            .navigationTitle(editing == nil ? L("Agregar trabajo") : L("Editar trabajo"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L("Cancelar")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") { save() }
+                    Button(L("Guardar")) { save() }
                         .disabled(nombre.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }

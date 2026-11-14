@@ -41,7 +41,7 @@ struct ShiftLiveActivity: Widget {
                             .tint(WColor.button)
                         }
                         HStack {
-                            Text("Neto \(WFmt.money(context.state.netPerHour, hidden: context.state.hideMoney))/h")
+                            Text(verbatim: (context.state.english == true ? "Net " : "Neto ") + WFmt.money(context.state.netPerHour, hidden: context.state.hideMoney) + "/h")
                             Spacer()
                             if let pin = context.attributes.pin, !pin.isEmpty {
                                 Text("PIN \(pin)")
@@ -75,7 +75,7 @@ struct LockScreenLiveView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("TRABAJANDO")
+                    Text(verbatim: state.english == true ? "WORKING" : "TRABAJANDO")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(WColor.orange)
                     HStack(spacing: 6) {
@@ -101,9 +101,13 @@ struct LockScreenLiveView: View {
                 .tint(WColor.button)
             }
             HStack {
-                Text("Neto \(WFmt.money(state.netPerHour, hidden: state.hideMoney))/h")
+                Text(verbatim: (state.english == true ? "Net " : "Neto ") + WFmt.money(state.netPerHour, hidden: state.hideMoney) + "/h")
                 if let end = state.scheduledEnd {
-                    Text("· Salida \(end, style: .time)")
+                    if state.english == true {
+                        Text("· Ends \(end, style: .time)")
+                    } else {
+                        Text("· Salida \(end, style: .time)")
+                    }
                 }
                 Spacer()
                 if let pin = attributes.pin, !pin.isEmpty {

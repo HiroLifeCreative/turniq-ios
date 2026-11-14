@@ -40,7 +40,7 @@ struct EarningsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        SectionTitle(text: "Por semana")
+                        SectionTitle(text: L("Por semana"))
                         Text(weekLabel).font(.turniq(12)).foregroundStyle(T.text2)
                     }
                     Spacer()
@@ -61,7 +61,7 @@ struct EarningsView: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        MonoLabel(text: "Por trabajo")
+                        MonoLabel(text: L("Por trabajo"))
                         Text(weekLabel).font(.turniq(12)).foregroundStyle(T.text2)
                     }
                     Spacer()
@@ -92,17 +92,17 @@ struct EarningsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("TRABAJADAS").font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                        Text(L("TRABAJADAS")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                         Text(Calc.fmtHours(worked.hours))
                             .font(.turniq(30, .bold)).foregroundStyle(T.money)
                             .lineLimit(1).minimumScaleFactor(0.7)
                     }
                     Spacer(minLength: 12)
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("BRUTO").font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                        Text(L("BRUTO")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                         Text(T.cash(worked.gross, hidden: hidden))
                             .font(.turniq(17, .bold)).foregroundStyle(.white)
-                        Text("NETO").font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                        Text(L("NETO")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                             .padding(.top, 6)
                         Text(T.cash(worked.net, hidden: hidden))
                             .font(.turniq(20, .bold)).foregroundStyle(T.money)
@@ -123,7 +123,7 @@ struct EarningsView: View {
                 }
                 .frame(height: 10)
                 HStack(alignment: .top) {
-                    DarkStat(label: "Programadas", value: Calc.fmtHours(scheduled.hours), color: T.sky)
+                    DarkStat(label: L("Programadas"), value: Calc.fmtHours(scheduled.hours), color: T.sky)
                     Spacer()
                     DarkStat(label: "Total", value: Calc.fmtHours(total), alignment: .trailing)
                 }
@@ -139,9 +139,9 @@ struct EarningsView: View {
         return Card {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    MonoLabel(text: "Meta semanal")
+                    MonoLabel(text: L("Meta semanal"))
                     Spacer()
-                    Text("\(T.cash(cur.net, hidden: hidden)) de \(Calc.money(meta))")
+                    Text(L("\(T.cash(cur.net, hidden: hidden)) de \(Calc.money(meta))"))
                         .font(.turniq(12)).foregroundStyle(T.text2)
                 }
                 HStack(spacing: 3) {
@@ -151,9 +151,9 @@ struct EarningsView: View {
                             .frame(height: 12)
                     }
                 }
-                Text("\(Int(pct.rounded()))% de la meta completada")
+                Text(L("\(Int(pct.rounded()))% de la meta completada"))
                     .font(.turniq(12)).foregroundStyle(T.text2)
-                Text("vs semana anterior: \(vs >= 0 ? "+" : "")\(Int(vs.rounded()))%")
+                Text(L("vs semana anterior: \(vs >= 0 ? "+" : "")\(Int(vs.rounded()))%"))
                     .font(.turniq(12)).foregroundStyle(T.text3)
             }
         }
@@ -172,7 +172,7 @@ struct EarningsView: View {
                 SectionTitle(text: "\(Calc.monthsLong[min(11, max(0, monthIdx))]) \(key.prefix(4))")
                 if monthOff != 0 {
                     Button { monthOff = 0 } label: {
-                        Text("HOY").font(.turniqMono).foregroundStyle(T.primary)
+                        Text(L("HOY")).font(.turniqMono).foregroundStyle(T.primary)
                     }
                 }
             }
@@ -183,25 +183,25 @@ struct EarningsView: View {
 
         TintedCard(accent: "#0064E0") {
             VStack(alignment: .leading, spacing: 4) {
-                Text("TOTALES DEL MES").font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                Text(L("TOTALES DEL MES")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                 Text(T.cash(month.net, hidden: hidden))
                     .font(.turniq(34, .bold)).tracking(-1).foregroundStyle(.white)
                     .lineLimit(1).minimumScaleFactor(0.6)
-                Text("Neto · con taxes").font(.turniq(12)).foregroundStyle(.white.opacity(0.55))
+                Text(L("Neto · con taxes")).font(.turniq(12)).foregroundStyle(.white.opacity(0.55))
                 Rectangle().fill(.white.opacity(0.14)).frame(height: 1).padding(.vertical, 8)
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("BRUTO").font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                        Text(L("BRUTO")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                         Text(T.cash(month.gross, hidden: hidden))
                             .font(.turniq(20, .bold)).foregroundStyle(T.amber)
-                        Text("sin taxes").font(.turniqMono).foregroundStyle(.white.opacity(0.45))
+                        Text(L("sin taxes")).font(.turniqMono).foregroundStyle(.white.opacity(0.45))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("HORAS").font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                        Text(L("HORAS")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                         Text(Calc.fmtHours(month.hours))
                             .font(.turniq(20, .bold)).foregroundStyle(.white)
-                        Text("\(monthShifts.filter { !$0.esLibre }.count) turnos")
+                        Text(L("\(monthShifts.filter { !$0.esLibre }.count) turnos"))
                             .font(.turniqMono).foregroundStyle(.white.opacity(0.45))
                     }
                 }
@@ -217,7 +217,7 @@ struct EarningsView: View {
             withAnimation(.easeOut(duration: 0.2)) { showYear.toggle() }
         } label: {
             HStack {
-                SectionTitle(text: "Por año")
+                SectionTitle(text: L("Por año"))
                 Spacer()
                 Image(systemName: showYear ? "chevron.down" : "chevron.right")
                     .font(.system(size: 17, weight: .semibold)).foregroundStyle(T.primary)
@@ -247,12 +247,12 @@ struct EarningsView: View {
                     }
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
-                            MonoLabel(text: "Neto")
+                            MonoLabel(text: L("Neto"))
                             Text(T.cash(net, hidden: hidden)).font(.turniq(24, .bold)).foregroundStyle(T.text)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            MonoLabel(text: "Horas")
+                            MonoLabel(text: L("Horas"))
                             Text(Calc.fmtHours(hours)).font(.turniq(24, .bold)).foregroundStyle(T.text)
                         }
                     }
@@ -282,7 +282,7 @@ struct EarningsView: View {
     private func perJob(_ workedShifts: [Shift]) -> some View {
         let rows = jobRows(workedShifts)
         if rows.isEmpty {
-            Text("Aún no hay turnos registrados")
+            Text(L("Aún no hay turnos registrados"))
                 .font(.turniq(13)).foregroundStyle(T.text3)
         }
         ForEach(rows, id: \.job.id) { row in
@@ -292,14 +292,14 @@ struct EarningsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(row.job.nombre).font(.turniq(16, .bold)).foregroundStyle(T.text).lineLimit(1)
                         Text(Calc.fmtHours(row.t.hours)
-                             + (row.t.overtimeHours > 0 ? " · \(Calc.fmtHours(row.t.overtimeHours)) hora extra" : ""))
+                             + (row.t.overtimeHours > 0 ? L(" · \(Calc.fmtHours(row.t.overtimeHours)) hora extra") : ""))
                             .font(.turniq(12)).foregroundStyle(T.text2)
                     }
                     Spacer(minLength: 8)
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(T.cash(row.t.net, hidden: hidden))
                             .font(.turniq(18, .bold)).foregroundStyle(T.text)
-                        Text("\(T.cash(row.t.gross, hidden: hidden)) bruto")
+                        Text(L("\(T.cash(row.t.gross, hidden: hidden)) bruto"))
                             .font(.turniq(11)).foregroundStyle(T.text3)
                     }
                 }
@@ -322,11 +322,11 @@ struct EarningsView: View {
         let t = totals(all, overtime: false)
         return Card {
             VStack(alignment: .leading, spacing: 4) {
-                MonoLabel(text: "Registrado actualmente")
+                MonoLabel(text: L("Registrado actualmente"))
                 Text(T.cash(t.net, hidden: hidden))
                     .font(.turniq(34, .bold)).tracking(-1).foregroundStyle(T.text)
                     .lineLimit(1).minimumScaleFactor(0.6)
-                Text("\(all.count) turnos · \(Calc.fmtHours(t.hours))")
+                Text(L("\(all.count) turnos · \(Calc.fmtHours(t.hours))"))
                     .font(.turniq(12)).foregroundStyle(T.text3)
             }
         }

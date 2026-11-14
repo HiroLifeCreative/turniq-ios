@@ -8,27 +8,77 @@ import ActivityKit
 // necesita el motor de cálculo ni el archivo completo de datos.
 
 public enum AppGroup {
+    /// Identificador declarado en Turniq.entitlements.
+    public static let declaredID = "group.com.hirolifecreative.turniq"
+
     /// Identificador del paquete de la APP (también desde la extensión,
     /// que vive en Turniq.app/PlugIns/TurniqWidget.appex).
     public static var hostBundleID: String? {
         var url = Bundle.main.bundleURL
         if url.pathExtension == "appex" {
             url = url.deletingLastPathComponent().deletingLastPathComponent()
+            if let id = Bundle(url: url)?.bundleIdentifier { return id }
+            // Sin acceso al paquete de la app: el id de la extensión es
+            // el de la app + ".TurniqWidget".
+            if let own = Bundle.main.bundleIdentifier, let dot = own.lastIndex(of: ".") {
+                return String(own[..<dot])
+            }
         }
-        return Bundle(url: url)?.bundleIdentifier ?? Bundle.main.bundleIdentifier
+        return Bundle.main.bundleIdentifier
     }
 
-    /// El grupo es "group." + id de la app. Se calcula al vuelo porque
-    /// xtool, al firmar, antepone un prefijo propio al id de la app y
-    /// al del grupo (XTL-XXXX.…), que cambia con cada Apple ID.
-    public static var groupID: String? {
-        hostBundleID.map { "group." + $0 }
+    /// Grupos de apps que el perfil de firma le concede a este binario
+    /// (se leen de embedded.mobileprovision). Cada herramienta de firma
+    /// renombra el grupo a su manera; el perfil dice el nombre real.
+    public static var provisionedGroups: [String] {
+        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let raw = try? Data(contentsOf: url),
+              let start = raw.range(of: Data("<?xml".utf8)),
+              let end = raw.range(of: Data("</plist>".utf8), in: start.lowerBound..<raw.endIndex) else { return [] }
+        let xml = raw.subdata(in: start.lowerBound..<end.upperBound)
+        guard let plist = try? PropertyListSerialization.propertyList(from: xml, format: nil) as? [String: Any],
+              let ents = plist["Entitlements"] as? [String: Any],
+              let groups = ents["com.apple.security.application-groups"] as? [String] else { return [] }
+        return groups
     }
+
+    /// Candidatos, del más probable al menos. El mismo orden en la app
+    /// y en la extensión, para que las dos elijan la misma carpeta.
+    public static var candidates: [String] {
+        var list: [String] = []
+        let prov = provisionedGroups.sorted()
+        list += prov.filter { $0.lowercased().contains("turniq") }
+        if let host = hostBundleID { list.append("group." + host) }
+        list.append(declaredID)
+        list += prov
+        var seen = Set<String>()
+        return list.filter { seen.insert($0).inserted }
+    }
+
+    private static var cached: (id: String, url: URL)?
+
+    private static func resolve() -> (id: String, url: URL)? {
+        if let cached { return cached }
+        for id in candidates {
+            if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) {
+                cached = (id, url)
+                return cached
+            }
+        }
+        return nil
+    }
+
+    /// Grupo que realmente funciona en esta instalación; nil si la
+    /// app se firmó sin grupo de apps.
+    public static var groupID: String? { resolve()?.id }
 
     /// Carpeta compartida; nil si la app se firmó sin el grupo.
-    public static var containerURL: URL? {
-        guard let id = groupID else { return nil }
-        return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)
+    public static var containerURL: URL? { resolve()?.url }
+
+    /// Texto de diagnóstico para la pantalla de ayuda.
+    public static var diagnostics: String {
+        let prov = provisionedGroups
+        return "id: \(hostBundleID ?? "?")\nperfil: \(prov.isEmpty ? "sin grupos" : prov.joined(separator: ", "))\nen uso: \(groupID ?? "ninguno")"
     }
 }
 
@@ -83,9 +133,13 @@ public struct WidgetSnapshot: Codable, Sendable {
     public var format12: Bool
     public var shifts: [ShiftItem]
     public var pays: [PayItem]
+    /// true = textos en inglés
+    public var english: Bool?
 
     public init(generatedAt: Date, weekStart: Date, weekEnd: Date, weekNet: Double, weekHours: Double,
-                hideMoney: Bool, format12: Bool, shifts: [ShiftItem], pays: [PayItem]) {
+                hideMoney: Bool, format12: Bool, shifts: [ShiftItem], pays: [PayItem],
+                english: Bool = false) {
+        self.english = english
         self.generatedAt = generatedAt
         self.weekStart = weekStart
         self.weekEnd = weekEnd
@@ -148,8 +202,10 @@ public struct ShiftActivityAttributes: ActivityAttributes {
         /// Neto por hora de este trabajo (sueldo menos taxes)
         public var netPerHour: Double
         public var hideMoney: Bool
+        public var english: Bool?
 
-        public init(start: Date, scheduledEnd: Date?, netPerHour: Double, hideMoney: Bool) {
+        public init(start: Date, scheduledEnd: Date?, netPerHour: Double, hideMoney: Bool, english: Bool = false) {
+            self.english = english
             self.start = start
             self.scheduledEnd = scheduledEnd
             self.netPerHour = netPerHour

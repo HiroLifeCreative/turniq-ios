@@ -11,6 +11,7 @@ final class Store: ObservableObject {
 
     @Published var data: TurniqData {
         didSet {
+            Lang.en = data.settings.idioma == "en"
             save()
             scheduleSideEffects()
         }
@@ -37,6 +38,7 @@ final class Store: ObservableObject {
         } else {
             data = TurniqData()
         }
+        Lang.en = data.settings.idioma == "en"
     }
 
     private func save() {
@@ -223,18 +225,18 @@ final class Store: ObservableObject {
         switch action {
         case "entrada":
             if let open = openShift {
-                return "Ya tienes un turno en curso en \(job(id: open.jobId)?.nombre ?? "tu trabajo")."
+                return L("Ya tienes un turno en curso en \(job(id: open.jobId)?.nombre ?? L("tu trabajo")).")
             }
-            guard let s = pendingShiftNow() else { return "No tienes turnos pendientes para hoy." }
+            guard let s = pendingShiftNow() else { return L("No tienes turnos pendientes para hoy.") }
             clockIn(shiftId: s.id)
             let j = job(id: s.jobId)
-            var msg = "Entrada marcada en \(j?.nombre ?? "tu trabajo") a las \(hora)."
-            if let pin = j?.pinMarcaje, !pin.isEmpty { msg += " PIN del reloj: \(pin)." }
+            var msg = L("Entrada marcada en \(j?.nombre ?? L("tu trabajo")) a las \(hora).")
+            if let pin = j?.pinMarcaje, !pin.isEmpty { msg += L(" PIN del reloj: \(pin).") }
             return msg
         case "salida":
-            guard let open = openShift else { return "No hay ningún turno en curso." }
+            guard let open = openShift else { return L("No hay ningún turno en curso.") }
             clockOut(shiftId: open.id)
-            return "Salida marcada en \(job(id: open.jobId)?.nombre ?? "tu trabajo") a las \(hora)."
+            return L("Salida marcada en \(job(id: open.jobId)?.nombre ?? L("tu trabajo")) a las \(hora).")
         default:
             return nil
         }

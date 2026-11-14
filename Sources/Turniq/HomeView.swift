@@ -69,9 +69,9 @@ struct HomeView: View {
 
     private func stateLabel(_ st: HeroState) -> String {
         switch st {
-        case .working: return "Trabajando"
-        case .missed: return "No marcado"
-        case .upcoming: return "Próximamente"
+        case .working: return L("Trabajando")
+        case .missed: return L("No marcado")
+        case .upcoming: return L("Próximamente")
         case .idle: return ""
         }
     }
@@ -99,11 +99,11 @@ struct HomeView: View {
 
                 if let open {
                     VStack(spacing: 8) {
-                        PrimaryButton(title: "Marcar salida", color: stateColor(st), textColor: .white) {
+                        PrimaryButton(title: L("Marcar salida"), color: stateColor(st), textColor: .white) {
                             store.clockOut(shiftId: open.id)
                         }
                         GhostButton(
-                            title: "Editar entrada · \(Calc.fmtTime(open.horaEntradaReal ?? open.horaEntrada, format12: fmt12))",
+                            title: L("Editar entrada · \(Calc.fmtTime(open.horaEntradaReal ?? open.horaEntrada, format12: fmt12))"),
                             icon: "pencil"
                         ) {
                             entryDraft = Calc.date(Calc.todayYmd(), open.horaEntradaReal ?? open.horaEntrada) ?? Date()
@@ -111,7 +111,7 @@ struct HomeView: View {
                         }
                     }
                 } else if todayShifts.contains(where: { $0.horaEntradaReal == nil }) {
-                    PrimaryButton(title: "Marcar entrada") { showClockSheet = true }
+                    PrimaryButton(title: L("Marcar entrada")) { showClockSheet = true }
                 }
 
                 if let next { reminder(next, now: now) }
@@ -119,7 +119,7 @@ struct HomeView: View {
                 PaydaysCard()
 
                 Button { showNewShift = true } label: {
-                    Text("+ Añadir turno")
+                    Text(L("+ Añadir turno"))
                         .font(.turniq(15, .bold))
                         .foregroundStyle(T.text2)
                         .frame(maxWidth: .infinity)
@@ -130,7 +130,7 @@ struct HomeView: View {
                 .opacity(store.jobs.isEmpty ? 0 : 1)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Próximos turnos")
+                    Text(L("Próximos turnos"))
                         .font(.turniq(19, .bold)).tracking(-0.3)
                         .foregroundStyle(T.text)
                     if upcoming.isEmpty {
@@ -157,7 +157,7 @@ struct HomeView: View {
         return DarkCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center) {
-                    Text("NETO TRABAJADO · ESTA SEMANA")
+                    Text(L("NETO TRABAJADO · ESTA SEMANA"))
                         .font(.turniqMono)
                         .foregroundStyle(.white.opacity(0.55))
                         .lineLimit(1).minimumScaleFactor(0.8)
@@ -196,7 +196,7 @@ struct HomeView: View {
                         HStack(spacing: 6) {
                             Image(systemName: hidden ? "eye.slash" : "eye")
                                 .font(.system(size: 15, weight: .semibold))
-                            Text(hidden ? "Mostrar" : "Ocultar").font(.turniqMono)
+                            Text(hidden ? L("Mostrar") : L("Ocultar")).font(.turniqMono)
                         }
                         .foregroundStyle(.white.opacity(0.85))
                         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -208,8 +208,8 @@ struct HomeView: View {
                 if let open { liveBlock(open, color: stateColor(st), now: now) }
 
                 HStack(spacing: 8) {
-                    chip(String(format: "%.1fh", t.hours), "Horas")
-                    chip(T.cash(t.gross, hidden: hidden), "Bruto")
+                    chip(String(format: "%.1fh", t.hours), L("Horas"))
+                    chip(T.cash(t.gross, hidden: hidden), L("Bruto"))
                     chip(T.cash(t.taxes, hidden: hidden), "Taxes")
                 }
             }
@@ -263,14 +263,14 @@ struct HomeView: View {
             .padding(4)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(job?.nombre ?? "") · En vivo")
+                Text(L("\(job?.nombre ?? "") · En vivo"))
                     .font(.turniqMono).foregroundStyle(.white.opacity(0.55)).lineLimit(1)
-                Text("Neto estimado")
+                Text(L("Neto estimado"))
                     .font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                 Text(T.cash(liveNet, hidden: hidden))
                     .font(.turniq(24, .bold)).monospacedDigit().foregroundStyle(color)
                 if let out = s.horaSalida {
-                    Text("Salida \(Calc.fmtTime(out, format12: fmt12)) · \(Int((pct * 100).rounded()))%")
+                    Text(L("Salida \(Calc.fmtTime(out, format12: fmt12)) · \(Int((pct * 100).rounded()))%"))
                         .font(.turniqMono).foregroundStyle(.white.opacity(0.55))
                 }
             }
@@ -293,8 +293,8 @@ struct HomeView: View {
 
     private func dayLabel(_ ymd: String) -> String {
         let today = Calc.todayYmd()
-        if ymd == today { return "Hoy" }
-        if ymd == Calc.addDays(today, 1) { return "Mañana" }
+        if ymd == today { return L("Hoy") }
+        if ymd == Calc.addDays(today, 1) { return L("Mañana") }
         return Calc.weekdayDate(ymd)
     }
 
@@ -310,7 +310,7 @@ struct HomeView: View {
                         .frame(width: 44, height: 44)
                         .background(T.button.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(cd.map { "Tu turno empieza en \($0)" } ?? "¡Tu turno empieza ya!")
+                        Text(cd.map { L("Tu turno empieza en \($0)") } ?? L("¡Tu turno empieza ya!"))
                             .font(.turniq(15, .bold)).foregroundStyle(T.text).lineLimit(1)
                         Text("\(job?.nombre ?? "") · \(dayLabel(s.fecha)) · \(Calc.rangeLabel(s, format12: fmt12))")
                             .font(.turniq(12)).foregroundStyle(T.text2).lineLimit(1)
@@ -362,7 +362,7 @@ struct HomeView: View {
                 }
                 Spacer(minLength: 0)
                 if isToday {
-                    Text("HOY")
+                    Text(L("HOY"))
                         .font(.turniq(10, .bold)).foregroundStyle(.white)
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .background(T.primary, in: Capsule())
@@ -374,15 +374,15 @@ struct HomeView: View {
 
     private var emptyCard: some View {
         VStack(spacing: 6) {
-            Text("Tu semana empieza aquí")
+            Text(L("Tu semana empieza aquí"))
                 .font(.turniq(17, .bold)).foregroundStyle(T.text)
             Text(store.jobs.isEmpty
-                 ? "Añade tus trabajos y después programa tus turnos."
-                 : "Programa tus turnos en la pestaña Semana.")
+                 ? L("Añade tus trabajos y después programa tus turnos.")
+                 : L("Programa tus turnos en la pestaña Semana."))
                 .font(.turniq(13)).foregroundStyle(T.text3)
                 .multilineTextAlignment(.center)
             Button { goTab(store.jobs.isEmpty ? 2 : 1) } label: {
-                Text(store.jobs.isEmpty ? "+ Trabajos" : "+ Añadir turno")
+                Text(store.jobs.isEmpty ? L("+ Trabajos") : L("+ Añadir turno"))
                     .font(.turniq(15, .bold)).foregroundStyle(T.text)
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(T.surface, in: Capsule())
@@ -433,7 +433,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Marcar entrada")
+            .navigationTitle(L("Marcar entrada"))
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium])
@@ -443,7 +443,7 @@ struct HomeView: View {
     private var editEntrySheet: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                DatePicker("Entrada real", selection: $entryDraft, displayedComponents: [.hourAndMinute])
+                DatePicker(L("Entrada real"), selection: $entryDraft, displayedComponents: [.hourAndMinute])
                     .font(.turniq(16, .medium))
                 HStack(spacing: 8) {
                     ForEach([-30, -15, -5, 5], id: \.self) { d in
@@ -458,9 +458,9 @@ struct HomeView: View {
                         .buttonStyle(PressStyle())
                     }
                 }
-                Text("¿Marcaste en el reloj del trabajo y olvidaste marcar en la app? Pon la hora real: el contador y el dinero se recalculan al momento.")
+                Text(L("¿Marcaste en el reloj del trabajo y olvidaste marcar en la app? Pon la hora real: el contador y el dinero se recalculan al momento."))
                     .font(.turniq(13)).foregroundStyle(T.text2)
-                PrimaryButton(title: "Guardar") {
+                PrimaryButton(title: L("Guardar")) {
                     if let open = store.openShift {
                         store.setRealEntry(shiftId: open.id, hm: Calc.hhmm(entryDraft))
                     }
@@ -469,7 +469,7 @@ struct HomeView: View {
                 Spacer(minLength: 0)
             }
             .padding(20)
-            .navigationTitle("Editar entrada")
+            .navigationTitle(L("Editar entrada"))
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium])

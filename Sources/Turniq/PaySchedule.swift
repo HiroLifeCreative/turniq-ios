@@ -15,7 +15,7 @@ enum PayFreq: String, CaseIterable, Identifiable {
     case quincenal
 
     var id: String { rawValue }
-    var label: String { self == .semanal ? "Cada semana" : "Cada 2 semanas" }
+    var label: String { self == .semanal ? L("Cada semana") : L("Cada 2 semanas") }
     var days: Int { self == .semanal ? 7 : 14 }
     var weeks: Int { self == .semanal ? 1 : 2 }
 }
@@ -40,9 +40,9 @@ struct PayInfo: Identifiable {
 
     var whenLabel: String {
         switch daysLeft {
-        case 0: return "Hoy"
-        case 1: return "Mañana"
-        default: return "En \(daysLeft) días"
+        case 0: return L("Hoy")
+        case 1: return L("Mañana")
+        default: return L("En \(daysLeft) días")
         }
     }
 }
@@ -86,7 +86,7 @@ enum Pay {
     }
 
     static func lagLabel(_ weeks: Int) -> String {
-        weeks <= 1 ? "La semana siguiente" : "\(weeks) semanas después"
+        weeks <= 1 ? L("La semana siguiente") : L("\(weeks) semanas después")
     }
 
     /// Periodo (lunes … domingo) que paga un día de cobro: termina el
@@ -133,7 +133,7 @@ enum Pay {
     /// "Cada semana · viernes" / "Cada semana · viernes · 2 sem. después"
     static func summary(_ job: Job, settings: Settings) -> String {
         var s = "\(freq(job).label) · \(Calc.daysLong[weekday(job, settings: settings)].lowercased())"
-        if lag(job) > 1 { s += " · \(lag(job)) sem. después" }
+        if lag(job) > 1 { s += L(" · \(lag(job)) sem. después") }
         return s
     }
 }

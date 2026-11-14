@@ -26,65 +26,71 @@ struct SettingsView: View {
         )
     }
 
-    private static let avisos: [(min: Int, label: String)] = [
-        (1440, "1 día antes"), (60, "1 hora antes"), (30, "30 min antes"),
-        (15, "15 min antes"), (0, "Al momento"),
-    ]
+    private static var avisos: [(min: Int, label: String)] {
+        [
+            (1440, L("1 día antes")), (60, L("1 hora antes")), (30, L("30 min antes")),
+            (15, L("15 min antes")), (0, L("Al momento")),
+        ]
+    }
 
     var body: some View {
         Form {
-            Section("Perfil") {
-                TextField("Tu nombre", text: bind(\.nombreUsuario))
+            Section(L("Perfil")) {
+                TextField(L("Tu nombre"), text: bind(\.nombreUsuario))
             }
 
-            Section("Apariencia") {
-                Toggle("Modo oscuro", isOn: bind(\.dark))
-                Picker("Formato de hora", selection: bind(\.formatoHora)) {
+            Section(L("Apariencia")) {
+                Picker("Idioma / Language", selection: bind(\.idioma)) {
+                    Text(verbatim: "Español").tag("es")
+                    Text(verbatim: "English").tag("en")
+                }
+                Toggle(L("Modo oscuro"), isOn: bind(\.dark))
+                Picker(L("Formato de hora"), selection: bind(\.formatoHora)) {
                     Text("12 h").tag("12h")
                     Text("24 h").tag("24h")
                 }
-                Toggle("Dinero oculto", isOn: bind(\.dineroOculto))
+                Toggle(L("Dinero oculto"), isOn: bind(\.dineroOculto))
             }
 
             Section {
-                Picker("Día de cobro general", selection: bind(\.diaCobro)) {
+                Picker(L("Día de cobro general"), selection: bind(\.diaCobro)) {
                     ForEach(0..<7, id: \.self) { i in
                         Text(Calc.daysLong[i]).tag(i)
                     }
                 }
-                Toggle("Avisarme el día de cobro", isOn: bind(\.avisoCobro))
+                Toggle(L("Avisarme el día de cobro"), isOn: bind(\.avisoCobro))
             } header: {
-                Text("Cobro")
+                Text(L("Cobro"))
             } footer: {
-                Text("Cada trabajo puede tener su propio ritmo (cada semana o cada 2 semanas) y su día: se cambia en Trabajos → Editar → Cobro. Este día se usa para los trabajos que no lo tengan.")
+                Text(L("Cada trabajo puede tener su propio ritmo (cada semana o cada 2 semanas) y su día: se cambia en Trabajos → Editar → Cobro. Este día se usa para los trabajos que no lo tengan."))
             }
 
             Section {
-                LabeledContent("Hora extra después de (h/sem)") {
+                LabeledContent(L("Hora extra después de (h/sem)")) {
                     TextField("40", value: bind(\.umbralExtraHrs), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 70)
                 }
-                LabeledContent("Multiplicador") {
+                LabeledContent(L("Multiplicador")) {
                     TextField("1.5", value: bind(\.multExtra), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 70)
                 }
-                Toggle("Mostrar hora extra", isOn: bind(\.mostrarHoraExtra))
-                LabeledContent("Meta semanal ($)") {
+                Toggle(L("Mostrar hora extra"), isOn: bind(\.mostrarHoraExtra))
+                LabeledContent(L("Meta semanal ($)")) {
                     TextField("600", value: bind(\.metaSemanal), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 90)
                 }
-                Toggle("Mostrar meta", isOn: bind(\.mostrarMeta))
-                DatePicker("Cierre automático", selection: cierreAuto, displayedComponents: [.hourAndMinute])
+                Toggle(L("Mostrar meta"), isOn: bind(\.mostrarMeta))
+                DatePicker(L("Cierre automático"), selection: cierreAuto, displayedComponents: [.hourAndMinute])
             } header: {
-                Text("Trabajo")
+                Text(L("Trabajo"))
             } footer: {
-                Text("La hora extra se cuenta por cada trabajo por separado, nunca sumando todos tus trabajos. Si un turno queda abierto, se cierra solo a la hora de cierre automático del día siguiente.")
+                Text(L("La hora extra se cuenta por cada trabajo por separado, nunca sumando todos tus trabajos. Si un turno queda abierto, se cierra solo a la hora de cierre automático del día siguiente."))
             }
 
             Section {
@@ -99,20 +105,20 @@ struct SettingsView: View {
                         }
                     ))
                 }
-                Toggle("Avisar al llegar al trabajo", isOn: bind(\.avisoLlegada))
-                Toggle("Actividad en Vivo al marcar entrada", isOn: bind(\.actividadEnVivo))
+                Toggle(L("Avisar al llegar al trabajo"), isOn: bind(\.avisoLlegada))
+                Toggle(L("Actividad en Vivo al marcar entrada"), isOn: bind(\.actividadEnVivo))
             } header: {
-                Text("Avisos de turno")
+                Text(L("Avisos de turno"))
             } footer: {
-                Text("En iPhone los avisos son notificaciones con sonido; Apple no permite alarmas a pantalla completa a otras apps.")
+                Text(L("En iPhone los avisos son notificaciones con sonido; Apple no permite alarmas a pantalla completa a otras apps."))
             }
 
-            Section("Seguridad") {
+            Section(L("Seguridad")) {
                 if store.settings.pin == nil {
                     HStack {
-                        SecureField("PIN de 4 dígitos", text: $pinInput)
+                        SecureField(L("PIN de 4 dígitos"), text: $pinInput)
                             .keyboardType(.numberPad)
-                        Button("Guardar") {
+                        Button(L("Guardar")) {
                             if pinInput.count == 4, pinInput.allSatisfy({ $0.isNumber }) {
                                 store.setSettings { $0.pin = pinInput }
                                 pinInput = ""
@@ -122,30 +128,30 @@ struct SettingsView: View {
                     }
                 } else {
                     Toggle("Face ID / Touch ID", isOn: bind(\.biometrico))
-                    Button("Quitar PIN", role: .destructive) {
+                    Button(L("Quitar PIN"), role: .destructive) {
                         store.setSettings { $0.pin = nil; $0.biometrico = false }
                     }
                 }
             }
 
             Section {
-                Button("Exportar respaldo (JSON)") { exporting = true }
-                Button("Importar respaldo") { importing = true }
+                Button(L("Exportar respaldo (JSON)")) { exporting = true }
+                Button(L("Importar respaldo")) { importing = true }
                 if let importMessage {
                     Text(importMessage).font(.footnote).foregroundStyle(.secondary)
                 }
-                Button("Borrar todos los datos", role: .destructive) { confirmWipe = true }
+                Button(L("Borrar todos los datos"), role: .destructive) { confirmWipe = true }
             } header: {
-                Text("Datos")
+                Text(L("Datos"))
             } footer: {
-                Text("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone.")
+                Text(L("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone."))
             }
         }
-        .navigationTitle("Ajustes")
+        .navigationTitle(L("Ajustes"))
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("¿Borrar TODOS los datos de Turniq?", isPresented: $confirmWipe, titleVisibility: .visible) {
-            Button("Borrar todo", role: .destructive) { store.wipeAll() }
-            Button("Cancelar", role: .cancel) {}
+        .confirmationDialog(L("¿Borrar TODOS los datos de Turniq?"), isPresented: $confirmWipe, titleVisibility: .visible) {
+            Button(L("Borrar todo"), role: .destructive) { store.wipeAll() }
+            Button(L("Cancelar"), role: .cancel) {}
         }
         .fileExporter(
             isPresented: $exporting,
@@ -158,9 +164,9 @@ struct SettingsView: View {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             if let raw = try? Data(contentsOf: url), store.importMerge(raw) {
-                importMessage = "Respaldo importado."
+                importMessage = L("Respaldo importado.")
             } else {
-                importMessage = "No pude importar ese archivo."
+                importMessage = L("No pude importar ese archivo.")
             }
         }
     }
