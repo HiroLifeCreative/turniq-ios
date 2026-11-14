@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.3.1, 14 nov 2026)
+## Estado (v1.4.0, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,24 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.4.0**
+
+- **Perfil con país y moneda** (`Country.swift`, `ProfileView.swift`):
+  33 países con su moneda (símbolo, decimales y separadores) y, donde
+  hay un valor habitual, horas semanales y recargo de hora extra
+  sugeridos. `Money` guarda la moneda en uso y `Calc.money` la aplica
+  en toda la app, el PDF, el widget y la Actividad en Vivo. Cambiar la
+  moneda no convierte montos. Campos nuevos en `Settings`: `pais`,
+  `moneda`, `taxDefault` (% que se propone en trabajos nuevos).
+  Los valores de hora extra por país son orientativos y conviene
+  verificarlos antes de publicar.
+- **Más** rediseñada: tarjeta de perfil con resumen del año y opciones
+  agrupadas (Dinero, Herramientas, Turniq) con ícono de color y
+  descripción.
+- **Bienvenida por pasos** (`OnboardingView.swift`): Inicio (idioma y
+  términos), País, Perfil, Trabajo y Listo, con indicador de pasos y
+  botón de volver.
 
 **Nuevo en 1.3.0**
 

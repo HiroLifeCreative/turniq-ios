@@ -45,7 +45,7 @@ struct JobsView: View {
     }
 
     private func jobCard(_ job: Job) -> some View {
-        var detail = "$\(ShiftFormView.num(job.sueldoHora))/h · \(ShiftFormView.num(job.taxPct))% tax"
+        var detail = "\(Calc.money(job.sueldoHora))/h · \(ShiftFormView.num(job.taxPct))% tax"
         if !job.estaciones.isEmpty {
             detail += " · " + job.estaciones.map { $0.nombre }.joined(separator: ", ")
         }
@@ -147,7 +147,7 @@ struct JobFormView: View {
                         }
                     }
                     .padding(.vertical, 4)
-                    LabeledContent(L("Sueldo por hora ($)")) {
+                    LabeledContent(L("Sueldo por hora (\(Money.symbol))")) {
                         TextField("15", text: $sueldo)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -227,7 +227,7 @@ struct JobFormView: View {
                 }
 
                 Section {
-                    LabeledContent(L("Extra nocturno ($/h)")) {
+                    LabeledContent(L("Extra nocturno (\(Money.symbol)/h)")) {
                         TextField("0", text: $nocturno)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -307,6 +307,7 @@ struct JobFormView: View {
             anchor = Calc.parseDay(e.pagoAncla ?? next) ?? Date()
         } else {
             color = Job.palette.randomElement() ?? Job.palette[0]
+            tax = ShiftFormView.num(store.settings.taxDefault)
             payDay = min(6, max(0, store.settings.diaCobro))
             let delta = ((payDay - Calc.weekdayIndex(today)) + 7) % 7
             anchor = Calc.parseDay(Calc.addDays(today, delta)) ?? Date()

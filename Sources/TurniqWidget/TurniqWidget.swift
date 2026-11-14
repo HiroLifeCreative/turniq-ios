@@ -116,9 +116,22 @@ enum WFmt {
         return f
     }()
 
+    private static var symbol = "$"
+
+    /// Toma la moneda del perfil que viene en la foto de datos.
+    static func configure(_ snap: WidgetSnapshot?) {
+        guard let snap else { return }
+        symbol = snap.currencySymbol ?? "$"
+        let d = snap.currencyDecimals ?? 2
+        moneyFmt.locale = Locale(identifier: snap.currencyLocale ?? "en_US")
+        moneyFmt.minimumFractionDigits = d
+        moneyFmt.maximumFractionDigits = d
+    }
+
     static func money(_ n: Double, hidden: Bool) -> String {
         if hidden { return "••••" }
-        return "$" + (moneyFmt.string(from: NSNumber(value: n)) ?? String(format: "%.2f", n))
+        let gap = (symbol.last.map { $0.isLetter || $0 == "/" || $0 == "." } ?? false) ? " " : ""
+        return symbol + gap + (moneyFmt.string(from: NSNumber(value: n)) ?? String(format: "%.2f", n))
     }
 
     static func time(_ d: Date, format12: Bool, english: Bool = false) -> String {
@@ -170,6 +183,7 @@ struct TurniqWidgetView: View {
     private func tr(_ es: String, _ english: String) -> String { en ? english : es }
 
     var body: some View {
+        let _ = WFmt.configure(entry.snapshot)
         switch family {
         case .systemMedium: medium
         case .accessoryRectangular: rectangular

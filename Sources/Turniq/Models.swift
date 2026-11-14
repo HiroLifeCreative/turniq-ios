@@ -215,6 +215,13 @@ struct Settings: Codable, Equatable {
     var avisoHoraExtra: Bool = true
     /// Preguntar las propinas al marcar salida
     var preguntarPropinas: Bool = true
+
+    // MARK: Perfil
+    /// País (código ISO de 2 letras) y moneda (código ISO)
+    var pais: String = "US"
+    var moneda: String = "USD"
+    /// % de impuestos que se propone al crear un trabajo nuevo
+    var taxDefault: Double = 0
 }
 
 extension Settings {
@@ -246,6 +253,9 @@ extension Settings {
         avisoLlegada = c.val(.avisoLlegada, d.avisoLlegada)
         avisoHoraExtra = c.val(.avisoHoraExtra, d.avisoHoraExtra)
         preguntarPropinas = c.val(.preguntarPropinas, d.preguntarPropinas)
+        pais = c.val(.pais, d.pais)
+        moneda = c.val(.moneda, d.moneda)
+        taxDefault = c.val(.taxDefault, d.taxDefault)
     }
 }
 

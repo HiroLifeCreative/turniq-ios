@@ -12,6 +12,7 @@ final class Store: ObservableObject {
     @Published var data: TurniqData {
         didSet {
             Lang.en = data.settings.idioma == "en"
+            Money.apply(data.settings)
             save()
             scheduleSideEffects()
         }
@@ -39,6 +40,19 @@ final class Store: ObservableObject {
             data = TurniqData()
         }
         Lang.en = data.settings.idioma == "en"
+        Money.apply(data.settings)
+    }
+
+    /// Cambia el país del perfil: pone su moneda y, si el país tiene
+    /// valores habituales de hora extra, los propone.
+    func setCountry(_ code: String) {
+        let c = Countries.country(code)
+        setSettings { s in
+            s.pais = c.code
+            s.moneda = c.currency
+            if let h = c.otHours { s.umbralExtraHrs = h }
+            if let m = c.otMult { s.multExtra = m }
+        }
     }
 
     private func save() {

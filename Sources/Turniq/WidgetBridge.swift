@@ -54,7 +54,8 @@ enum WidgetBridge {
             hideMoney: settings.dineroOculto,
             format12: settings.formatoHora == "12h",
             shifts: Array(items.prefix(12)), pays: Array(pays.prefix(6)),
-            english: Lang.en)
+            english: Lang.en, currencySymbol: Money.symbol,
+            currencyDecimals: Money.decimals, currencyLocale: Money.localeID)
         if snapshot.save() {
             WidgetCenter.shared.reloadAllTimelines()
         }
@@ -89,7 +90,8 @@ enum LiveShift {
         let rate = Calc.rate(s, job: job) * Calc.multiplier(s) * (1 - (job?.taxPct ?? 0) / 100)
         let state = ShiftActivityAttributes.ContentState(
             start: start, scheduledEnd: scheduledEnd,
-            netPerHour: rate, hideMoney: data.settings.dineroOculto, english: Lang.en)
+            netPerHour: rate, hideMoney: data.settings.dineroOculto, english: Lang.en,
+            netPerHourText: Calc.money(rate))
         let content = ActivityContent(state: state, staleDate: nil)
 
         if let current = running.first(where: { $0.attributes.shiftId == s.id }) {

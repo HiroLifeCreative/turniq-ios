@@ -235,8 +235,8 @@ struct HomeView: View {
                             .foregroundStyle(.white)
                     } else {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text("$").font(.turniq(28, .bold)).foregroundStyle(.white.opacity(0.7))
-                            Text(String(Calc.money(t.net).dropFirst()))
+                            Text(verbatim: Money.symbol).font(.turniq(28, .bold)).foregroundStyle(.white.opacity(0.7))
+                            Text(verbatim: Money.number(t.net))
                                 .font(.turniq(44, .bold)).tracking(-1.5)
                                 .foregroundStyle(.white)
                                 .contentTransition(.numericText())

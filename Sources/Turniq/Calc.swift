@@ -375,19 +375,9 @@ enum Calc {
             : ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     }
 
-    private static let moneyFmt: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.locale = Locale(identifier: "en_US")
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        return f
-    }()
-
-    /// "$1,234.56" (igual que Android)
+    /// Dinero con la moneda del perfil: "$1,234.56", "S/ 1,234.50"…
     static func money(_ n: Double) -> String {
-        let body = moneyFmt.string(from: NSNumber(value: abs(n))) ?? String(format: "%.2f", abs(n))
-        return (n < 0 ? "-$" : "$") + body
+        Money.format(n)
     }
 
     /// "8h 30m" / "8h" (formato corto de Android)

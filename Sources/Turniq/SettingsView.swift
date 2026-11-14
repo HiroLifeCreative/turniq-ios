@@ -36,12 +36,8 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section(L("Perfil")) {
-                TextField(L("Tu nombre"), text: bind(\.nombreUsuario))
-            }
-
             Section(L("Apariencia")) {
-                Picker("Idioma / Language", selection: bind(\.idioma)) {
+                Picker(L("Idioma / Language"), selection: bind(\.idioma)) {
                     Text(verbatim: "Español").tag("es")
                     Text(verbatim: "English").tag("en")
                 }
@@ -80,7 +76,7 @@ struct SettingsView: View {
                         .frame(width: 70)
                 }
                 Toggle(L("Mostrar hora extra"), isOn: bind(\.mostrarHoraExtra))
-                LabeledContent(L("Meta semanal ($)")) {
+                LabeledContent(L("Meta semanal (\(Money.symbol))")) {
                     TextField("600", value: bind(\.metaSemanal), format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)

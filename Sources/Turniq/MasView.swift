@@ -2,55 +2,86 @@ import SwiftUI
 import UIKit
 import TurniqShared
 
-/// Menú "Más" (hoja modal): filas simples con ícono, sin contenedores
-/// de color, y el pie con versión y créditos — igual que Android.
+/// Menú "Más" (hoja modal): tarjeta de perfil arriba y las opciones
+/// agrupadas en tarjetas, cada una con su ícono de color y una línea
+/// que explica para qué sirve.
 struct MasView: View {
+    @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
 
-    private enum Dest: Hashable { case paychecks, annual, settings, calendar, shortcuts, terms, changelog }
+    private enum Dest: Hashable {
+        case profile, paychecks, annual, settings, calendar, shortcuts, terms, changelog
+    }
 
-    private let items: [(dest: Dest, icon: String, label: String)] = [
-        (.paychecks, "banknote", L("Comparar cheques")),
-        (.annual, "doc.text", L("Resumen anual")),
-        (.settings, "gearshape", L("Ajustes")),
-        (.calendar, "calendar", L("Calendario del iPhone")),
-        (.shortcuts, "bolt.circle", L("Atajos, Siri y Widgets")),
-        (.terms, "building.columns", L("Términos y privacidad")),
-        (.changelog, "sparkles", L("Novedades")),
-    ]
+    private struct Item: Identifiable {
+        var dest: Dest
+        var icon: String
+        var tint: String
+        var title: String
+        var subtitle: String
+        var id: String { title }
+    }
+
+    private var groups: [(title: String, items: [Item])] {
+        [
+            (L("Dinero"), [
+                Item(dest: .paychecks, icon: "banknote.fill", tint: "#30A46C",
+                     title: L("Comparar cheques"), subtitle: L("Lo que te pagaron frente a lo calculado")),
+                Item(dest: .annual, icon: "doc.text.fill", tint: "#0064E0",
+                     title: L("Resumen anual"), subtitle: L("Totales del año y PDF")),
+            ]),
+            (L("Herramientas"), [
+                Item(dest: .calendar, icon: "calendar", tint: "#E5484D",
+                     title: L("Calendario del iPhone"), subtitle: L("Turnos y cobros en tu calendario")),
+                Item(dest: .shortcuts, icon: "bolt.fill", tint: "#E8830C",
+                     title: L("Atajos, Siri y Widgets"), subtitle: L("Marcar sin abrir la app")),
+            ]),
+            ("Turniq", [
+                Item(dest: .settings, icon: "gearshape.fill", tint: "#646B7A",
+                     title: L("Ajustes"), subtitle: L("Avisos, seguridad y respaldo")),
+                Item(dest: .terms, icon: "building.columns.fill", tint: "#7C3AED",
+                     title: L("Términos y privacidad"), subtitle: L("Cómo se usan tus datos")),
+                Item(dest: .changelog, icon: "sparkles", tint: "#D97706",
+                     title: L("Novedades"), subtitle: L("Lo nuevo de esta versión")),
+            ]),
+        ]
+    }
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.3.1"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.4.0"
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(Array(items.enumerated()), id: \.offset) { idx, it in
-                        NavigationLink(value: it.dest) {
-                            HStack(spacing: 12) {
-                                Image(systemName: it.icon)
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundStyle(T.text2)
-                                    .frame(width: 26)
-                                Text(it.label)
-                                    .font(.turniq(17)).foregroundStyle(T.text)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(T.text3)
+                VStack(alignment: .leading, spacing: 18) {
+                    NavigationLink(value: Dest.profile) { profileCard }
+                        .buttonStyle(PressStyle())
+
+                    ForEach(groups, id: \.title) { g in
+                        VStack(alignment: .leading, spacing: 8) {
+                            MonoLabel(text: g.title).padding(.leading, 4)
+                            Card(padding: 0) {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(g.items.enumerated()), id: \.element.id) { idx, it in
+                                        NavigationLink(value: it.dest) { row(it) }
+                                            .buttonStyle(.plain)
+                                        if idx < g.items.count - 1 {
+                                            Rectangle().fill(T.line).frame(height: 0.5)
+                                                .padding(.leading, 66)
+                                        }
+                                    }
+                                }
                             }
-                            .padding(.vertical, 16)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if idx < items.count - 1 {
-                            Rectangle().fill(T.line).frame(height: 0.5)
                         }
                     }
 
                     VStack(spacing: 8) {
+                        HStack(spacing: 0) {
+                            Text(verbatim: "Turniq").foregroundStyle(T.text)
+                            Text(verbatim: ".").foregroundStyle(T.button)
+                        }
+                        .font(.turniq(20, .bold))
                         Text("Turniq iOS \(version)")
                         Link(destination: URL(string: "https://www.instagram.com/SoyNelsonHerrera")!) {
                             Image(systemName: "camera")
@@ -64,12 +95,12 @@ struct MasView: View {
                     .font(.turniq(12))
                     .foregroundStyle(T.text3)
                     .multilineTextAlignment(.center)
-                    .padding(.top, 32)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 12)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(16)
             }
-            .background(T.bg)
+            .background(T.surface)
             .navigationTitle(L("Más"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -79,6 +110,7 @@ struct MasView: View {
             }
             .navigationDestination(for: Dest.self) { d in
                 switch d {
+                case .profile: ProfileView()
                 case .paychecks: PaychecksView()
                 case .annual: AnnualSummaryView()
                 case .terms: TermsView()
@@ -91,11 +123,83 @@ struct MasView: View {
         }
         .font(.turniq(15))
     }
+
+    /// Tarjeta oscura con el perfil y un resumen de la cuenta.
+    private var profileCard: some View {
+        let s = store.settings
+        let country = Countries.country(s.pais)
+        let year = String(Calc.todayYmd().prefix(4))
+        let worked = Calc.onlyWorked(store.shifts.filter { $0.fecha.hasPrefix(year) && !$0.esLibre })
+        let net = Calc.rangeTotals(shifts: worked, jobsById: store.jobsById,
+                                   umbralExtraHrs: s.umbralExtraHrs, multExtra: s.multExtra).net
+        return DarkCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 14) {
+                    Avatar(name: s.nombreUsuario, size: 58)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(s.nombreUsuario.isEmpty ? L("Tu perfil") : s.nombreUsuario)
+                            .font(.turniq(20, .bold)).foregroundStyle(.white).lineLimit(1)
+                        Text(verbatim: "\(country.flag) \(country.name) · \(s.moneda)")
+                            .font(.turniq(13)).foregroundStyle(.white.opacity(0.65)).lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                    Text(L("Editar"))
+                        .font(.turniq(13, .bold)).foregroundStyle(T.buttonText)
+                        .padding(.horizontal, 14).frame(height: 32)
+                        .background(T.button, in: Capsule())
+                }
+                HStack(spacing: 8) {
+                    stat("\(store.jobs.count)", L("Trabajos"))
+                    stat("\(worked.count)", L("Turnos \(year)"))
+                    stat(T.cash(net, hidden: s.dineroOculto), L("Neto \(year)"))
+                }
+            }
+        }
+    }
+
+    private func stat(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.turniq(15, .bold)).foregroundStyle(.white)
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text(label)
+                .font(.turniq(10)).foregroundStyle(.white.opacity(0.5)).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10).padding(.horizontal, 6)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func row(_ it: Item) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: it.icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(T.hex(it.tint))
+                .frame(width: 38, height: 38)
+                .background(T.hex(it.tint).opacity(0.14), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(it.title).font(.turniq(16, .medium)).foregroundStyle(T.text)
+                Text(it.subtitle).font(.turniq(12)).foregroundStyle(T.text3).lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(T.text3)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
 }
 
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.4.0", "2026-11-14", [
+            L("Perfil con país y moneda: al elegir el país se ajustan la moneda y los valores sugeridos de hora extra."),
+            L("Pantalla Más rediseñada, con tarjeta de perfil y opciones agrupadas."),
+            L("Bienvenida por pasos de configuración: idioma, país, perfil y primer trabajo."),
+        ]),
         ("1.3.1", "2026-11-14", [
             L("Calendario: la sincronización ya funciona con cuentas que no permiten crear calendarios y muestra el motivo si falla."),
         ]),

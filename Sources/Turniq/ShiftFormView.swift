@@ -91,9 +91,9 @@ struct ShiftFormView: View {
                         }
                     }
                     Section("Extras") {
-                        TextField(L("Propinas ($)"), text: $propinas)
+                        TextField(L("Propinas (\(Money.symbol))"), text: $propinas)
                             .keyboardType(.decimalPad)
-                        TextField(L("Bono ($)"), text: $bono)
+                        TextField(L("Bono (\(Money.symbol))"), text: $bono)
                             .keyboardType(.decimalPad)
                         TextField(L("Notas"), text: $notas, axis: .vertical)
                     }

@@ -135,11 +135,19 @@ public struct WidgetSnapshot: Codable, Sendable {
     public var pays: [PayItem]
     /// true = textos en inglés
     public var english: Bool?
+    /// Moneda del perfil (símbolo, decimales y región de formato)
+    public var currencySymbol: String?
+    public var currencyDecimals: Int?
+    public var currencyLocale: String?
 
     public init(generatedAt: Date, weekStart: Date, weekEnd: Date, weekNet: Double, weekHours: Double,
                 hideMoney: Bool, format12: Bool, shifts: [ShiftItem], pays: [PayItem],
-                english: Bool = false) {
+                english: Bool = false, currencySymbol: String = "$",
+                currencyDecimals: Int = 2, currencyLocale: String = "en_US") {
         self.english = english
+        self.currencySymbol = currencySymbol
+        self.currencyDecimals = currencyDecimals
+        self.currencyLocale = currencyLocale
         self.generatedAt = generatedAt
         self.weekStart = weekStart
         self.weekEnd = weekEnd
@@ -203,9 +211,13 @@ public struct ShiftActivityAttributes: ActivityAttributes {
         public var netPerHour: Double
         public var hideMoney: Bool
         public var english: Bool?
+        /// Neto por hora ya escrito con la moneda del perfil
+        public var netPerHourText: String?
 
-        public init(start: Date, scheduledEnd: Date?, netPerHour: Double, hideMoney: Bool, english: Bool = false) {
+        public init(start: Date, scheduledEnd: Date?, netPerHour: Double, hideMoney: Bool,
+                    english: Bool = false, netPerHourText: String? = nil) {
             self.english = english
+            self.netPerHourText = netPerHourText
             self.start = start
             self.scheduledEnd = scheduledEnd
             self.netPerHour = netPerHour
