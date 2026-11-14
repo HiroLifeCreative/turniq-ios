@@ -139,16 +139,16 @@ struct SettingsView: View {
                 if let importMessage {
                     Text(importMessage).font(.footnote).foregroundStyle(.secondary)
                 }
-                Button(L("Borrar todos los datos"), role: .destructive) { confirmWipe = true }
+                Button(L("Borrar los datos de esta cuenta"), role: .destructive) { confirmWipe = true }
             } header: {
                 Text(L("Datos"))
             } footer: {
-                Text(L("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone."))
+                Text(L("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone.") + " " + L("El respaldo incluye solo la cuenta en uso: exporta cada cuenta por separado."))
             }
         }
         .navigationTitle(L("Ajustes"))
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog(L("¿Borrar TODOS los datos de Turniq?"), isPresented: $confirmWipe, titleVisibility: .visible) {
+        .confirmationDialog(L("¿Borrar los trabajos, turnos y cheques de esta cuenta? Las otras cuentas no se tocan."), isPresented: $confirmWipe, titleVisibility: .visible) {
             Button(L("Borrar todo"), role: .destructive) { store.wipeAll() }
             Button(L("Cancelar"), role: .cancel) {}
         }

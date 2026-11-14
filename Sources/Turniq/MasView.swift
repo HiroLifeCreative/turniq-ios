@@ -8,6 +8,8 @@ import TurniqShared
 struct MasView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
+    @State private var addingAccount = false
+    @State private var deleting: Account? = nil
 
     private enum Dest: Hashable {
         case profile, paychecks, annual, settings, calendar, shortcuts, terms, changelog
@@ -48,7 +50,7 @@ struct MasView: View {
     }
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.4.0"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.4.1"
     }
 
     var body: some View {
@@ -57,6 +59,8 @@ struct MasView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     NavigationLink(value: Dest.profile) { profileCard }
                         .buttonStyle(PressStyle())
+
+                    accountsCard
 
                     ForEach(groups, id: \.title) { g in
                         VStack(alignment: .leading, spacing: 8) {
@@ -108,6 +112,22 @@ struct MasView: View {
                     Button(L("Listo")) { dismiss() }
                 }
             }
+            .sheet(isPresented: $addingAccount) {
+                CountryPicker(selected: "") { c in
+                    store.createAccount(country: c.code)
+                }
+            }
+            .confirmationDialog(
+                L("¿Eliminar la cuenta «\(deleting?.displayName ?? "")» con todos sus trabajos y turnos?"),
+                isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button(L("Eliminar cuenta"), role: .destructive) {
+                    if let a = deleting { store.deleteAccount(a.id) }
+                    deleting = nil
+                }
+                Button(L("Cancelar"), role: .cancel) { deleting = nil }
+            }
             .navigationDestination(for: Dest.self) { d in
                 switch d {
                 case .profile: ProfileView()
@@ -122,6 +142,82 @@ struct MasView: View {
             }
         }
         .font(.turniq(15))
+    }
+
+    /// Cuentas: una por país, cada una con sus trabajos, turnos y
+    /// moneda. Se cambia con un toque y se pueden crear más.
+    private var accountsCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            MonoLabel(text: L("Cuentas")).padding(.leading, 4)
+            Card(padding: 0) {
+                VStack(spacing: 0) {
+                    ForEach(store.accounts) { a in
+                        let active = a.id == store.activeId
+                        let country = Countries.country(a.pais)
+                        let cur = Countries.currency(a.moneda)
+                        Button {
+                            store.switchAccount(a.id)
+                        } label: {
+                            HStack(spacing: 14) {
+                                Text(verbatim: country.flag)
+                                    .font(.system(size: 24))
+                                    .frame(width: 38, height: 38)
+                                    .background(T.surface, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(verbatim: a.displayName)
+                                        .font(.turniq(16, .medium)).foregroundStyle(T.text).lineLimit(1)
+                                    Text(verbatim: "\(cur.code) · \(cur.symbol) · \(cur.name)")
+                                        .font(.turniq(12)).foregroundStyle(T.text3).lineLimit(1)
+                                }
+                                Spacer(minLength: 8)
+                                if active {
+                                    Text(L("En uso"))
+                                        .font(.turniq(12, .bold)).foregroundStyle(T.success)
+                                        .padding(.horizontal, 10).frame(height: 26)
+                                        .background(T.success.opacity(0.12), in: Capsule())
+                                } else {
+                                    Text(L("Usar"))
+                                        .font(.turniq(12, .bold)).foregroundStyle(T.primary)
+                                        .padding(.horizontal, 10).frame(height: 26)
+                                        .background(T.primary.opacity(0.10), in: Capsule())
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            if !active && store.accounts.count > 1 {
+                                Button(role: .destructive) { deleting = a } label: {
+                                    Label(L("Eliminar cuenta"), systemImage: "trash")
+                                }
+                            }
+                        }
+                        Rectangle().fill(T.line).frame(height: 0.5).padding(.leading, 66)
+                    }
+                    Button { addingAccount = true } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(T.button)
+                                .frame(width: 38, height: 38)
+                                .background(T.button.opacity(0.14), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                            Text(L("Nueva cuenta para otro país"))
+                                .font(.turniq(16, .medium)).foregroundStyle(T.primary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Text(L("Cada cuenta guarda sus propios trabajos, turnos, cheques y moneda. Tu nombre, idioma y PIN son los mismos en todas. Mantén pulsada una cuenta que no esté en uso para eliminarla."))
+                .font(.turniq(12)).foregroundStyle(T.text3)
+                .padding(.horizontal, 4)
+        }
     }
 
     /// Tarjeta oscura con el perfil y un resumen de la cuenta.
@@ -139,7 +235,7 @@ struct MasView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(s.nombreUsuario.isEmpty ? L("Tu perfil") : s.nombreUsuario)
                             .font(.turniq(20, .bold)).foregroundStyle(.white).lineLimit(1)
-                        Text(verbatim: "\(country.flag) \(country.name) · \(s.moneda)")
+                        Text(verbatim: "\(country.flag) \(store.activeAccount?.displayName ?? country.name) · \(s.moneda)")
                             .font(.turniq(13)).foregroundStyle(.white.opacity(0.65)).lineLimit(1)
                     }
                     Spacer(minLength: 8)
@@ -195,6 +291,10 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.4.1", "2026-11-14", [
+            L("Cuentas por país: cada cuenta tiene sus propios trabajos, turnos, cheques y moneda, y se cambia de una a otra desde Más."),
+            L("El país y la moneda de una cuenta quedan fijos cuando ya tiene trabajos o turnos."),
+        ]),
         ("1.4.0", "2026-11-14", [
             L("Perfil con país y moneda: al elegir el país se ajustan la moneda y los valores sugeridos de hora extra."),
             L("Pantalla Más rediseñada, con tarjeta de perfil y opciones agrupadas."),

@@ -111,30 +111,49 @@ struct ProfileView: View {
             }
 
             Section {
-                Button { pickingCountry = true } label: {
+                if store.accountLocked {
+                    // Con trabajos o turnos, el país y la moneda no se tocan.
                     HStack(spacing: 12) {
                         Text(verbatim: country.flag).font(.system(size: 28))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(L("País")).font(.caption).foregroundStyle(.secondary)
-                            Text(verbatim: country.name).font(.turniq(16, .medium)).foregroundStyle(T.text)
+                            Text(verbatim: store.activeAccount?.displayName ?? country.name)
+                                .font(.turniq(16, .medium)).foregroundStyle(T.text)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold)).foregroundStyle(T.text3)
+                        Image(systemName: "lock.fill").foregroundStyle(T.text3)
                     }
-                }
-                Picker(L("Moneda"), selection: bind(\.moneda)) {
-                    ForEach(Countries.currencies) { c in
-                        Text(verbatim: "\(c.code) · \(c.symbol) · \(c.name)").tag(c.code)
+                    LabeledContent(L("Moneda")) {
+                        Text(verbatim: "\(Money.code) · \(Money.symbol)").foregroundStyle(.secondary)
+                    }
+                } else {
+                    Button { pickingCountry = true } label: {
+                        HStack(spacing: 12) {
+                            Text(verbatim: country.flag).font(.system(size: 28))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(L("País")).font(.caption).foregroundStyle(.secondary)
+                                Text(verbatim: country.name).font(.turniq(16, .medium)).foregroundStyle(T.text)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(T.text3)
+                        }
+                    }
+                    Picker(L("Moneda"), selection: bind(\.moneda)) {
+                        ForEach(Countries.currencies) { c in
+                            Text(verbatim: "\(c.code) · \(c.symbol) · \(c.name)").tag(c.code)
+                        }
                     }
                 }
                 LabeledContent(L("Ejemplo")) {
                     Text(verbatim: Calc.money(1234.5)).foregroundStyle(.secondary)
                 }
             } header: {
-                Text(L("País y moneda"))
+                Text(L("País y moneda de esta cuenta"))
             } footer: {
-                Text(L("Cambiar la moneda solo cambia el símbolo y el formato: no convierte los montos que ya escribiste."))
+                Text(store.accountLocked
+                     ? L("Esta cuenta ya tiene trabajos o turnos, así que su país y su moneda quedan fijos. Para trabajar en otro país crea otra cuenta en Más → Cuentas: cada una guarda sus propios datos.")
+                     : L("Elige el país antes de añadir trabajos: cuando la cuenta tenga datos, el país y la moneda quedan fijos."))
             }
 
             Section {

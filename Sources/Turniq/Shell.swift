@@ -51,6 +51,18 @@ struct TurniqShell: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
             Spacer()
+            // Con más de una cuenta, la bandera de la que está en uso.
+            if store.accounts.count > 1 {
+                Button { showMas = true } label: {
+                    Text(verbatim: Countries.country(store.settings.pais).flag)
+                        .font(.system(size: 22))
+                        .frame(width: 44, height: 44)
+                        .background(.white.opacity(0.12), in: Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                }
+                .buttonStyle(PressStyle())
+                .accessibilityLabel(L("Cuentas"))
+            }
             Button { showMas = true } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 20, weight: .semibold))

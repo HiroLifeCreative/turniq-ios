@@ -308,7 +308,7 @@ struct OnboardingView: View {
             title(L("¿Dónde trabajas?"),
                   L("Con tu país Turniq pone la moneda correcta y propone los valores de hora extra habituales."))
 
-            Button { pickingCountry = true } label: {
+            Button { if !store.accountLocked { pickingCountry = true } } label: {
                 HStack(spacing: 14) {
                     Text(verbatim: country.flag).font(.system(size: 40))
                     VStack(alignment: .leading, spacing: 2) {
@@ -316,10 +316,14 @@ struct OnboardingView: View {
                         Text(verbatim: country.name).font(.turniq(20, .bold)).foregroundStyle(.white)
                     }
                     Spacer()
-                    Text(L("Cambiar"))
-                        .font(.turniq(13, .bold)).foregroundStyle(T.buttonText)
-                        .padding(.horizontal, 14).frame(height: 32)
-                        .background(T.button, in: Capsule())
+                    if store.accountLocked {
+                        Image(systemName: "lock.fill").foregroundStyle(.white.opacity(0.5))
+                    } else {
+                        Text(L("Cambiar"))
+                            .font(.turniq(13, .bold)).foregroundStyle(T.buttonText)
+                            .padding(.horizontal, 14).frame(height: 32)
+                            .background(T.button, in: Capsule())
+                    }
                 }
                 .padding(16)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -344,7 +348,9 @@ struct OnboardingView: View {
                 }
             }
 
-            Text(L("Son sugerencias generales del país: la ley y tu contrato pueden ser distintos. Todo se cambia después en Más → Perfil."))
+            Text(store.accountLocked
+                 ? L("Esta cuenta ya tiene trabajos o turnos, así que su país y su moneda quedan fijos. Para trabajar en otro país crea otra cuenta en Más → Cuentas: cada una guarda sus propios datos.")
+                 : L("Son sugerencias generales del país: la ley y tu contrato pueden ser distintos. Si después trabajas en otro país, crea otra cuenta en Más → Cuentas."))
                 .font(.turniq(13)).foregroundStyle(.white.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
         }

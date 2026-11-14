@@ -280,6 +280,24 @@ extension Paycheck {
     }
 }
 
+/// Una cuenta: un país con su moneda y SUS propios trabajos, turnos y
+/// cheques. Cada cuenta se guarda en su propio archivo, así los datos
+/// de un país nunca se mezclan con los de otro.
+struct Account: Codable, Identifiable, Equatable {
+    var id: String
+    /// Nombre propio; nil = el nombre del país
+    var nombre: String?
+    var pais: String
+    var moneda: String
+
+    var displayName: String { nombre ?? Countries.country(pais).name }
+}
+
+struct AccountIndex: Codable {
+    var activeId: String
+    var accounts: [Account]
+}
+
 /// Documento raíz persistido (JSON en Documents/turniq-v1.json).
 /// Mismo formato que el respaldo de Android (version/exportedAt se
 /// escriben para que Android lo reconozca al importarlo).

@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.4.0, 14 nov 2026)
+## Estado (v1.4.1, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,20 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.4.1**
+
+- **Cuentas por país** (`Account`, `Store.switchAccount`,
+  `createAccount`, `deleteAccount`): cada cuenta es un país con su
+  moneda y su propio archivo de datos (`turniq-v1.json` para la
+  principal, `turniq-cuenta-<id>.json` para las demás; el índice está
+  en `turniq-cuentas.json`). Al cambiar de cuenta se cargan sus
+  trabajos, turnos, plantillas y cheques; el nombre, idioma, PIN y
+  avisos son comunes. Lo propio de la cuenta: país, moneda, impuestos
+  por defecto, hora extra, meta semanal y día de cobro.
+- El país y la moneda de una cuenta quedan fijos cuando tiene trabajos
+  o turnos (`Store.accountLocked`); para otro país se crea otra cuenta.
+- Avisos, calendario, widget y respaldo trabajan con la cuenta en uso.
 
 **Nuevo en 1.4.0**
 

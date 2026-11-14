@@ -18,34 +18,138 @@ final class Store: ObservableObject {
         }
     }
 
-    private let fileURL: URL
+    /// Cuentas (una por país) y la que está en uso.
+    @Published private(set) var accounts: [Account]
+    @Published private(set) var activeId: String
+
+    private let docsURL: URL
     private let backupsURL: URL
     private var sideEffects: Task<Void, Never>?
 
+    /// Id de la primera cuenta: conserva el archivo de siempre.
+    static let mainAccountId = "principal"
+
+    private static func dataURL(_ id: String, in docs: URL) -> URL {
+        docs.appendingPathComponent(id == mainAccountId ? "turniq-v1.json" : "turniq-cuenta-\(id).json")
+    }
+
+    private var fileURL: URL { Self.dataURL(activeId, in: docsURL) }
+    private var indexURL: URL { docsURL.appendingPathComponent("turniq-cuentas.json") }
+
+    /// Lee el archivo de una cuenta. Si está ilegible guarda una copia
+    /// antes de empezar de cero, para no perder nada sin remedio.
+    private static func load(_ url: URL) -> TurniqData {
+        guard let raw = try? Data(contentsOf: url) else { return TurniqData() }
+        if let decoded = try? JSONDecoder().decode(TurniqData.self, from: raw) { return decoded }
+        let bak = url.deletingPathExtension().appendingPathExtension("corrupto.json")
+        try? raw.write(to: bak, options: [.atomic])
+        return TurniqData()
+    }
+
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        fileURL = docs.appendingPathComponent("turniq-v1.json")
+        docsURL = docs
         backupsURL = docs.appendingPathComponent("Respaldos", isDirectory: true)
-        if let raw = try? Data(contentsOf: fileURL) {
-            if let decoded = try? JSONDecoder().decode(TurniqData.self, from: raw) {
-                data = decoded
-            } else {
-                // Archivo ilegible: se conserva una copia antes de
-                // empezar de cero, para no perder nada sin remedio.
-                let bak = docs.appendingPathComponent("turniq-v1.corrupto.json")
-                try? raw.write(to: bak, options: [.atomic])
-                data = TurniqData()
-            }
-        } else {
-            data = TurniqData()
+
+        var index: AccountIndex? = nil
+        if let raw = try? Data(contentsOf: docs.appendingPathComponent("turniq-cuentas.json")) {
+            index = try? JSONDecoder().decode(AccountIndex.self, from: raw)
         }
+        let active = index.flatMap { ix in ix.accounts.contains { $0.id == ix.activeId } ? ix.activeId : ix.accounts.first?.id }
+            ?? Self.mainAccountId
+        let loaded = Self.load(Self.dataURL(active, in: docs))
+        activeId = active
+        if let index, !index.accounts.isEmpty {
+            accounts = index.accounts
+        } else {
+            // Primera vez con cuentas: lo que ya había pasa a ser la
+            // cuenta principal, con su país y su moneda.
+            accounts = [Account(id: Self.mainAccountId, nombre: nil,
+                                pais: loaded.settings.pais, moneda: loaded.settings.moneda)]
+        }
+        data = loaded
         Lang.en = data.settings.idioma == "en"
         Money.apply(data.settings)
     }
 
-    /// Cambia el país del perfil: pone su moneda y, si el país tiene
-    /// valores habituales de hora extra, los propone.
+    // MARK: Cuentas
+
+    var activeAccount: Account? { accounts.first { $0.id == activeId } }
+
+    /// La cuenta ya tiene trabajos o turnos: su país y su moneda
+    /// quedan fijos (cambiarlos dejaría los montos sin sentido).
+    var accountLocked: Bool { !data.jobs.isEmpty || !data.shifts.isEmpty }
+
+    private func saveIndex() {
+        let index = AccountIndex(activeId: activeId, accounts: accounts)
+        if let raw = try? JSONEncoder().encode(index) {
+            try? raw.write(to: indexURL, options: [.atomic])
+        }
+    }
+
+    /// Ajustes de una cuenta con las preferencias de la app (nombre,
+    /// idioma, PIN, avisos…) tomadas de `app`. Lo propio de la cuenta
+    /// —país, moneda, impuestos, hora extra, meta y día de cobro— se
+    /// conserva.
+    private static func merged(account: Settings, app: Settings) -> Settings {
+        var s = app
+        s.pais = account.pais
+        s.moneda = account.moneda
+        s.taxDefault = account.taxDefault
+        s.umbralExtraHrs = account.umbralExtraHrs
+        s.multExtra = account.multExtra
+        s.metaSemanal = account.metaSemanal
+        s.diaCobro = account.diaCobro
+        return s
+    }
+
+    /// Cambia a otra cuenta ya creada.
+    func switchAccount(_ id: String) {
+        guard id != activeId, accounts.contains(where: { $0.id == id }) else { return }
+        save()
+        var next = Self.load(Self.dataURL(id, in: docsURL))
+        next.settings = Self.merged(account: next.settings, app: data.settings)
+        activeId = id
+        data = next
+        saveIndex()
+    }
+
+    /// Crea una cuenta vacía para un país (con su moneda y sus valores
+    /// sugeridos) y cambia a ella.
+    func createAccount(country code: String) {
+        let c = Countries.country(code)
+        var s = Settings()
+        s.pais = c.code
+        s.moneda = c.currency
+        if let h = c.otHours { s.umbralExtraHrs = h }
+        if let m = c.otMult { s.multExtra = m }
+        var fresh = TurniqData()
+        fresh.settings = Self.merged(account: s, app: data.settings)
+
+        // Si ya hay una cuenta de ese país, la nueva lleva número.
+        let same = accounts.filter { $0.pais == c.code }.count
+        let name: String? = same == 0 ? nil : "\(c.name) \(same + 1)"
+        let account = Account(id: String(UUID().uuidString.prefix(8)).lowercased(),
+                              nombre: name, pais: c.code, moneda: c.currency)
+        save()
+        accounts.append(account)
+        activeId = account.id
+        data = fresh
+        saveIndex()
+    }
+
+    /// Borra una cuenta que NO está en uso, con todos sus datos.
+    func deleteAccount(_ id: String) {
+        guard id != activeId, accounts.count > 1, accounts.contains(where: { $0.id == id }) else { return }
+        try? FileManager.default.removeItem(at: Self.dataURL(id, in: docsURL))
+        accounts.removeAll { $0.id == id }
+        saveIndex()
+    }
+
+    /// País de la cuenta en uso. Solo se puede cambiar mientras la
+    /// cuenta está vacía; después hay que crear otra cuenta.
     func setCountry(_ code: String) {
+        guard !accountLocked else { return }
         let c = Countries.country(code)
         setSettings { s in
             s.pais = c.code
@@ -58,6 +162,13 @@ final class Store: ObservableObject {
     private func save() {
         if let raw = try? JSONEncoder().encode(data) {
             try? raw.write(to: fileURL, options: [.atomic])
+        }
+        // La lista de cuentas refleja el país y la moneda de la activa.
+        if let i = accounts.firstIndex(where: { $0.id == activeId }),
+           accounts[i].pais != data.settings.pais || accounts[i].moneda != data.settings.moneda {
+            accounts[i].pais = data.settings.pais
+            accounts[i].moneda = data.settings.moneda
+            saveIndex()
         }
     }
 
@@ -89,13 +200,15 @@ final class Store: ObservableObject {
         guard !(data.jobs.isEmpty && data.shifts.isEmpty) else { return }
         let fm = FileManager.default
         try? fm.createDirectory(at: backupsURL, withIntermediateDirectories: true)
-        let file = backupsURL.appendingPathComponent("turniq-backup-\(Calc.todayYmd()).json")
+        // Una copia por día y por cuenta.
+        let tag = activeId == Self.mainAccountId ? "" : "-\(activeId)"
+        let file = backupsURL.appendingPathComponent("turniq-backup-\(Calc.todayYmd())\(tag).json")
         guard !fm.fileExists(atPath: file.path), let raw = exportJSON() else { return }
         try? raw.write(to: file, options: [.atomic])
         let names = ((try? fm.contentsOfDirectory(atPath: backupsURL.path)) ?? [])
             .filter { $0.hasPrefix("turniq-backup-") && $0.hasSuffix(".json") }
             .sorted()
-        for old in names.dropLast(14) {
+        for old in names.dropLast(14 * max(1, accounts.count)) {
             try? fm.removeItem(at: backupsURL.appendingPathComponent(old))
         }
     }
@@ -345,5 +458,11 @@ final class Store: ObservableObject {
         return true
     }
 
-    func wipeAll() { data = TurniqData() }
+    /// Borra los trabajos, turnos, plantillas y cheques de la cuenta
+    /// en uso. Las otras cuentas y las preferencias no se tocan.
+    func wipeAll() {
+        var d = TurniqData()
+        d.settings = data.settings
+        data = d
+    }
 }
