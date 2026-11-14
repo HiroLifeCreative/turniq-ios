@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.2.2, 14 nov 2026)
+## Estado (v1.2.3, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,13 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.2.3**
+
+- **Exportar respaldo** usa la hoja de Compartir de iOS con el archivo
+  ya escrito (antes un selector de documentos que podía salir en
+  blanco). **Importar** también funciona con «Abrir en Turniq» sobre
+  un `.json` desde Archivos u otra app.
 
 **Nuevo en 1.2.2**
 

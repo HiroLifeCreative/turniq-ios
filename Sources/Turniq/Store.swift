@@ -216,6 +216,16 @@ final class Store: ObservableObject {
     /// "marcar" alterna: entrada si no hay turno abierto, salida si lo
     /// hay. Devuelve el mensaje a mostrar, o nil si solo abre la app.
     func handleURL(_ url: URL) -> String? {
+        // Un respaldo .json abierto con «Abrir en Turniq» desde
+        // Archivos, WhatsApp, correo o AirDrop.
+        if url.isFileURL {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            guard let raw = try? Data(contentsOf: url), importMerge(raw) else {
+                return L("No pude importar ese archivo.")
+            }
+            return L("Respaldo importado.")
+        }
         guard url.scheme?.lowercased() == "turniq" else { return nil }
         let raw = url.host ?? url.path.replacingOccurrences(of: "/", with: "")
         var action = raw.lowercased()

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 /// Ajustes (se abre desde Más): perfil, apariencia, trabajo, cobro,
@@ -6,7 +7,7 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @EnvironmentObject var store: Store
     @State private var pinInput = ""
-    @State private var exporting = false
+    @State private var shareFile: ShareFile? = nil
     @State private var importing = false
     @State private var confirmWipe = false
     @State private var importMessage: String? = nil
@@ -135,7 +136,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Button(L("Exportar respaldo (JSON)")) { exporting = true }
+                Button(L("Exportar respaldo (JSON)")) { exportBackup() }
                 Button(L("Importar respaldo")) { importing = true }
                 if let importMessage {
                     Text(importMessage).font(.footnote).foregroundStyle(.secondary)
@@ -153,12 +154,12 @@ struct SettingsView: View {
             Button(L("Borrar todo"), role: .destructive) { store.wipeAll() }
             Button(L("Cancelar"), role: .cancel) {}
         }
-        .fileExporter(
-            isPresented: $exporting,
-            document: JSONDocument(data: store.exportJSON() ?? Data()),
-            contentType: .json,
-            defaultFilename: "turniq-backup-\(Calc.todayYmd())"
-        ) { _ in }
+        // Exportar: hoja de Compartir de iOS con el archivo ya escrito
+        // (Guardar en Archivos, AirDrop, WhatsApp, correo…).
+        .sheet(item: $shareFile) { f in
+            ActivityView(items: [f.url])
+                .presentationDetents([.medium, .large])
+        }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
             guard case .success(let url) = result else { return }
             let scoped = url.startAccessingSecurityScopedResource()
@@ -170,6 +171,41 @@ struct SettingsView: View {
             }
         }
     }
+}
+
+extension SettingsView {
+    /// Escribe el respaldo en un archivo temporal y abre Compartir.
+    fileprivate func exportBackup() {
+        guard let raw = store.exportJSON() else {
+            importMessage = L("No pude crear el respaldo.")
+            return
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("turniq-backup-\(Calc.todayYmd()).json")
+        do {
+            try raw.write(to: url, options: [.atomic])
+            importMessage = nil
+            shareFile = ShareFile(url: url)
+        } catch {
+            importMessage = L("No pude crear el respaldo.")
+        }
+    }
+}
+
+struct ShareFile: Identifiable {
+    var url: URL
+    var id: String { url.path }
+}
+
+/// Hoja de Compartir del sistema.
+struct ActivityView: UIViewControllerRepresentable {
+    var items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 struct JSONDocument: FileDocument {
