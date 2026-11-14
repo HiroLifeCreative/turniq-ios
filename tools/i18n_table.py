@@ -247,4 +247,6 @@ T = [
 ("Propinas: se preguntan…", "Tips: asked when you clock out, and Earnings shows which days bring in the most."),
 ("Compartir semana: una imagen…", "Share week: an image of your schedule to send."),
 ("Bienvenida de la primera vez…", "First-run welcome, with terms and conditions and a privacy policy."),
+("Listo: %@ eventos. Tu cuenta no deja…", "Done: %@ events. Your account doesn't allow creating calendars, so they're in your “%@” calendar."),
+("Calendario: la sincronización ya funciona…", "Calendar: sync now works with accounts that don't allow creating calendars, and shows the reason if it fails."),
 ]

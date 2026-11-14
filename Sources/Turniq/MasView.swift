@@ -20,7 +20,7 @@ struct MasView: View {
     ]
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.3.0"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.3.1"
     }
 
     var body: some View {
@@ -96,6 +96,9 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.3.1", "2026-11-14", [
+            L("Calendario: la sincronización ya funciona con cuentas que no permiten crear calendarios y muestra el motivo si falla."),
+        ]),
         ("1.3.0", "2026-11-14", [
             L("Comparar cheques: anota lo que te pagaron cada día de cobro y la app lo compara con lo calculado."),
             L("Tarifas especiales: sueldo propio por estación, extra nocturno y pago doble o tiempo y medio por turno."),
@@ -332,9 +335,15 @@ struct CalendarSyncView: View {
 
     private func syncNow() {
         if let n = CalendarSync.sync(data: store.data) {
-            message = L("Listo: \(n) eventos en el calendario Turniq.")
+            var msg = L("Listo: \(n) eventos en el calendario Turniq.")
+            if let name = CalendarSync.fallbackCalendarName {
+                msg = L("Listo: \(n) eventos. Tu cuenta no deja crear calendarios, así que quedaron en tu calendario «\(name)».")
+            }
+            message = msg
         } else {
-            message = L("No se pudo sincronizar. Revisa el permiso de Calendarios.")
+            var msg = L("No se pudo sincronizar. Revisa el permiso de Calendarios.")
+            if let detail = CalendarSync.lastError { msg += "\n(" + detail + ")" }
+            message = msg
             denied = CalendarSync.denied
         }
     }

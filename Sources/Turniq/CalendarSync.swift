@@ -36,9 +36,30 @@ enum CalendarSync {
         }
     }
 
+    /// Motivo del último fallo, para mostrarlo en pantalla.
+    static private(set) var lastError: String? = nil
+
+    /// Marca de los eventos creados por Turniq (para no tocar otros).
+    private static let marker = URL(string: "turniq://abrir")
+
+    /// ¿El calendario es el propio «Turniq»? Si no se pudo crear uno
+    /// (hay cuentas que no lo permiten) se usa el calendario por
+    /// defecto del usuario y solo se tocan los eventos marcados.
+    private static func isOwn(_ cal: EKCalendar) -> Bool {
+        cal.title == calendarTitle
+    }
+
+    /// Nombre del calendario donde quedaron los eventos, si NO es el
+    /// propio «Turniq».
+    static var fallbackCalendarName: String? {
+        guard authorized, let cal = calendar(create: false), !isOwn(cal) else { return nil }
+        return cal.title
+    }
+
     private static func calendar(create: Bool) -> EKCalendar? {
         let defaults = UserDefaults.standard
-        if let id = defaults.string(forKey: calKey), let c = ek.calendar(withIdentifier: id) {
+        if let id = defaults.string(forKey: calKey), let c = ek.calendar(withIdentifier: id),
+           c.allowsContentModifications {
             return c
         }
         if let c = ek.calendars(for: .event).first(where: {
@@ -48,21 +69,42 @@ enum CalendarSync {
             return c
         }
         guard create else { return nil }
-        let source: EKSource? = ek.defaultCalendarForNewEvents?.source
-            ?? ek.sources.first(where: { $0.sourceType == .local })
-            ?? ek.sources.first
-        guard let source else { return nil }
-        let c = EKCalendar(for: .event, eventStore: ek)
-        c.title = calendarTitle
-        c.cgColor = UIColor(red: 0.012, green: 0.573, blue: 1.0, alpha: 1).cgColor
-        c.source = source
-        do {
-            try ek.saveCalendar(c, commit: true)
-        } catch {
-            return nil
+
+        // No todas las cuentas dejan crear calendarios (Google y
+        // Exchange suelen negarlo), así que se prueba una por una:
+        // iCloud, local, la cuenta por defecto y el resto.
+        var sources: [EKSource] = []
+        let all = ek.sources
+        sources += all.filter { $0.sourceType == .calDAV && $0.title.lowercased().contains("icloud") }
+        sources += all.filter { $0.sourceType == .local }
+        if let def = ek.defaultCalendarForNewEvents?.source { sources.append(def) }
+        sources += all.filter { $0.sourceType == .calDAV || $0.sourceType == .exchange }
+        var seen = Set<String>()
+        sources = sources.filter { seen.insert($0.sourceIdentifier).inserted }
+
+        var failure = "sin cuentas de calendario"
+        for source in sources {
+            let c = EKCalendar(for: .event, eventStore: ek)
+            c.title = calendarTitle
+            c.cgColor = UIColor(red: 0.012, green: 0.573, blue: 1.0, alpha: 1).cgColor
+            c.source = source
+            do {
+                try ek.saveCalendar(c, commit: true)
+                defaults.set(c.calendarIdentifier, forKey: calKey)
+                return c
+            } catch {
+                failure = "\(source.title): \(error.localizedDescription)"
+                ek.reset()
+            }
         }
-        defaults.set(c.calendarIdentifier, forKey: calKey)
-        return c
+
+        // Último recurso: el calendario por defecto del usuario.
+        if let def = ek.defaultCalendarForNewEvents, def.allowsContentModifications {
+            defaults.set(def.calendarIdentifier, forKey: calKey)
+            return def
+        }
+        lastError = failure
+        return nil
     }
 
     /// Sincroniza si el usuario lo tiene activado y hay permiso.
@@ -75,7 +117,13 @@ enum CalendarSync {
     /// Devuelve cuántos eventos dejó, o nil si no se pudo.
     @discardableResult
     static func sync(data: TurniqData) -> Int? {
-        guard authorized, let cal = calendar(create: true) else { return nil }
+        lastError = nil
+        guard authorized else {
+            lastError = "sin permiso de acceso total al Calendario"
+            return nil
+        }
+        guard let cal = calendar(create: true) else { return nil }
+        let own = isOwn(cal)
         let today = Calc.todayYmd()
         let from = Calc.addDays(today, -daysBack)
         let to = Calc.addDays(today, daysAhead)
@@ -84,7 +132,7 @@ enum CalendarSync {
 
         // 1. Limpia lo que había en la ventana (solo en NUESTRO calendario).
         let pred = ek.predicateForEvents(withStart: winStart, end: winEnd, calendars: [cal])
-        for ev in ek.events(matching: pred) {
+        for ev in ek.events(matching: pred) where own || ev.url?.scheme == "turniq" {
             try? ek.remove(ev, span: .thisEvent, commit: false)
         }
 
@@ -123,6 +171,7 @@ enum CalendarSync {
                 notes.append(L("Creado por Turniq"))
                 ev.notes = notes.joined(separator: "\n")
             }
+            ev.url = marker
             if (try? ek.save(ev, span: .thisEvent, commit: false)) != nil { count += 1 }
         }
 
@@ -140,7 +189,8 @@ enum CalendarSync {
                     ev.endDate = d
                     let p = Pay.period(job, payday: day)
                     ev.notes = L("Periodo: \(Calc.shortDate(p.start)) – \(Calc.shortDate(p.end))\nCreado por Turniq")
-                    if (try? ek.save(ev, span: .thisEvent, commit: false)) != nil { count += 1 }
+                    ev.url = marker
+            if (try? ek.save(ev, span: .thisEvent, commit: false)) != nil { count += 1 }
                 }
                 day = Calc.addDays(day, Pay.freq(job).days)
             }
@@ -149,6 +199,7 @@ enum CalendarSync {
         do {
             try ek.commit()
         } catch {
+            lastError = error.localizedDescription
             ek.reset()
             return nil
         }
@@ -158,7 +209,18 @@ enum CalendarSync {
     /// Borra el calendario «Turniq» entero (al desactivar la función).
     static func removeCalendar() {
         guard authorized, let cal = calendar(create: false) else { return }
-        try? ek.removeCalendar(cal, commit: true)
+        if isOwn(cal) {
+            try? ek.removeCalendar(cal, commit: true)
+        } else {
+            // Calendario del usuario: solo se quitan los eventos de Turniq.
+            let now = Date()
+            let pred = ek.predicateForEvents(withStart: now.addingTimeInterval(-370 * 86400),
+                                             end: now.addingTimeInterval(370 * 86400), calendars: [cal])
+            for ev in ek.events(matching: pred) where ev.url?.scheme == "turniq" {
+                try? ek.remove(ev, span: .thisEvent, commit: false)
+            }
+            try? ek.commit()
+        }
         UserDefaults.standard.removeObject(forKey: calKey)
     }
 }
