@@ -116,10 +116,11 @@ struct TurniqShell: View {
         .background {
             Capsule()
                 .fill(.ultraThinMaterial)
+                .overlay(Capsule().fill(T.card.opacity(0.78)))
                 .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
         }
         .overlay {
-            Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 0.5)
+            Capsule().strokeBorder(T.line, lineWidth: 0.5)
         }
     }
 }

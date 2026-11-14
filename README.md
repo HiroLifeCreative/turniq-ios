@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.2.1, 14 nov 2026)
+## Estado (v1.2.2, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,19 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.2.2**
+
+- **Detalle del turno** (`ShiftDetailSheet.swift`): mantener pulsada
+  una tarjeta de turno en Semana (o ⋮ → Ver detalles) abre una hoja
+  con horario programado y real, horas, dinero estimado, PIN del
+  reloj, estaciones, notas y el día en que se cobra ese turno.
+- **Dock**: velo del color de la tarjeta sobre el vidrio para que los
+  íconos se lean también al pasar sobre tarjetas oscuras.
+- **Widget y firma**: el widget necesita que la app se instale con el
+  grupo de apps. `xtool dev` / `xtool install` lo registran; otras
+  herramientas de firma pueden quitarlo, y entonces Más → Atajos, Siri
+  y Widgets muestra «Sin conexión» con `perfil: sin grupos`.
 
 **Nuevo en 1.2.1**
 

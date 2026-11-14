@@ -17,7 +17,7 @@ struct MasView: View {
     ]
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.2.1"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.2.2"
     }
 
     var body: some View {
@@ -90,6 +90,10 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.2.2", "2026-11-14", [
+            L("Detalle del turno: al mantener pulsado un turno en Semana se abre una hoja con horario, horas, dinero estimado, PIN del reloj y día de cobro."),
+            L("La barra de navegación se lee bien al pasar sobre fondos oscuros."),
+        ]),
         ("1.2.1", "2026-11-14", [
             L("Idioma: inglés o español, en Ajustes → Apariencia."),
             L("Corrección: los widgets ahora encuentran los datos de la app sin importar cómo se firmó."),

@@ -98,6 +98,18 @@ enum Pay {
         return (start, end)
     }
 
+    /// Día de cobro que paga un día trabajado concreto (nil si no se
+    /// encuentra en los próximos periodos).
+    static func payday(covering fecha: String, job: Job, settings: Settings) -> String? {
+        var day = nextPayday(job, settings: settings, from: fecha)
+        for _ in 0..<10 {
+            let p = period(job, payday: day)
+            if fecha >= p.start && fecha <= p.end { return day }
+            day = Calc.addDays(day, freq(job).days)
+        }
+        return nil
+    }
+
     /// Detalle de un cobro: periodo y monto trabajado.
     static func info(_ job: Job, payday: String, shifts: [Shift], settings: Settings, today: String) -> PayInfo {
         let p = period(job, payday: payday)

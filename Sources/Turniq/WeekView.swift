@@ -10,6 +10,7 @@ struct WeekView: View {
     @State private var confirmDup = false
     @State private var confirmDelete: Shift? = nil
     @State private var dupDone = false
+    @State private var detail: Shift? = nil
 
     private var fmt12: Bool { store.settings.formatoHora == "12h" }
     private var hidden: Bool { store.settings.dineroOculto }
@@ -52,6 +53,20 @@ struct WeekView: View {
             .padding(16)
             .padding(.bottom, dockClearance)
         }
+        .sheet(item: $detail) { s in
+            // Tras cerrar el detalle se espera a que termine la
+            // animación antes de abrir el editor o la confirmación.
+            ShiftDetailSheet(
+                shiftId: s.id,
+                onEdit: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { editing = store.shift(id: s.id) }
+                },
+                onDelete: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { confirmDelete = store.shift(id: s.id) }
+                }
+            )
+        }
+        .sensoryFeedback(.impact(weight: .medium), trigger: detail?.id)
         .sheet(item: $editing) { s in
             ShiftFormView(editing: s)
         }
@@ -266,6 +281,7 @@ struct WeekView: View {
                     }
                 }
                 Menu {
+                    Button { detail = s } label: { Label(L("Ver detalles"), systemImage: "info.circle") }
                     Button { editing = s } label: { Label(L("Editar"), systemImage: "pencil") }
                     Button { store.duplicateShift(id: s.id) } label: {
                         Label(L("Duplicar turno"), systemImage: "plus.square.on.square")
@@ -286,6 +302,8 @@ struct WeekView: View {
         }
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .onTapGesture { editing = s }
+        // Mantener pulsado: hoja con el detalle del turno.
+        .onLongPressGesture(minimumDuration: 0.35) { detail = s }
     }
 
     private func totalsCard(_ t: Calc.WeekTotals) -> some View {
