@@ -216,6 +216,10 @@ struct Settings: Codable, Equatable {
     /// Preguntar las propinas al marcar salida
     var preguntarPropinas: Bool = true
 
+    /// Con varias cuentas: avisar también de los turnos y cobros de
+    /// las cuentas que no están en uso.
+    var avisosTodasCuentas: Bool = false
+
     // MARK: Perfil
     /// País (código ISO de 2 letras) y moneda (código ISO)
     var pais: String = "US"
@@ -253,6 +257,7 @@ extension Settings {
         avisoLlegada = c.val(.avisoLlegada, d.avisoLlegada)
         avisoHoraExtra = c.val(.avisoHoraExtra, d.avisoHoraExtra)
         preguntarPropinas = c.val(.preguntarPropinas, d.preguntarPropinas)
+        avisosTodasCuentas = c.val(.avisosTodasCuentas, d.avisosTodasCuentas)
         pais = c.val(.pais, d.pais)
         moneda = c.val(.moneda, d.moneda)
         taxDefault = c.val(.taxDefault, d.taxDefault)
@@ -296,6 +301,18 @@ struct Account: Codable, Identifiable, Equatable {
 struct AccountIndex: Codable {
     var activeId: String
     var accounts: [Account]
+}
+
+/// Respaldo de TODAS las cuentas en un solo archivo.
+struct AccountsBackup: Codable {
+    struct Entry: Codable {
+        var cuenta: Account
+        var datos: TurniqData
+    }
+    var turniqCuentas: Int
+    var exportedAt: String
+    var activeId: String
+    var cuentas: [Entry]
 }
 
 /// Documento raíz persistido (JSON en Documents/turniq-v1.json).

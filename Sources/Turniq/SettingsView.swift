@@ -8,6 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: Store
     @State private var pinInput = ""
     @State private var shareFile: ShareFile? = nil
+    @State private var askExportScope = false
     @State private var importing = false
     @State private var confirmWipe = false
     @State private var importMessage: String? = nil
@@ -104,6 +105,9 @@ struct SettingsView: View {
                 }
                 Toggle(L("Avisar al llegar al trabajo"), isOn: bind(\.avisoLlegada))
                 Toggle(L("Avisar si me acerco a la hora extra"), isOn: bind(\.avisoHoraExtra))
+                if store.accounts.count > 1 {
+                    Toggle(L("Avisos de todas las cuentas"), isOn: bind(\.avisosTodasCuentas))
+                }
                 Toggle(L("Preguntar propinas al marcar salida"), isOn: bind(\.preguntarPropinas))
                 Toggle(L("Actividad en Vivo al marcar entrada"), isOn: bind(\.actividadEnVivo))
             } header: {
@@ -134,7 +138,10 @@ struct SettingsView: View {
             }
 
             Section {
-                Button(L("Exportar respaldo (JSON)")) { exportBackup() }
+                Button(L("Exportar respaldo (JSON)")) {
+                    // Con varias cuentas, el usuario elige qué lleva.
+                    if store.accounts.count > 1 { askExportScope = true } else { exportBackup(all: false) }
+                }
                 Button(L("Importar respaldo")) { importing = true }
                 if let importMessage {
                     Text(importMessage).font(.footnote).foregroundStyle(.secondary)
@@ -143,7 +150,7 @@ struct SettingsView: View {
             } header: {
                 Text(L("Datos"))
             } footer: {
-                Text(L("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone.") + " " + L("El respaldo incluye solo la cuenta en uso: exporta cada cuenta por separado."))
+                Text(L("El respaldo es compatible con Turniq para Android: lo que exportas en una app se importa en la otra. Además Turniq guarda sola una copia diaria (las últimas 14) en la app Archivos → En mi iPhone → Turniq → Respaldos, que también entra en la copia de iCloud del iPhone.") + " " + L("Con varias cuentas, al exportar eliges si el respaldo lleva solo la cuenta en uso o todas; y en Avisos de turno decides si te avisa solo de la cuenta en uso o de todas."))
             }
         }
         .navigationTitle(L("Ajustes"))
@@ -154,6 +161,11 @@ struct SettingsView: View {
         }
         // Exportar: hoja de Compartir de iOS con el archivo ya escrito
         // (Guardar en Archivos, AirDrop, WhatsApp, correo…).
+        .confirmationDialog(L("¿Qué quieres respaldar?"), isPresented: $askExportScope, titleVisibility: .visible) {
+            Button(L("Solo esta cuenta (\(store.activeAccount?.displayName ?? ""))")) { exportBackup(all: false) }
+            Button(L("Todas las cuentas (\(store.accounts.count))")) { exportBackup(all: true) }
+            Button(L("Cancelar"), role: .cancel) {}
+        }
         .sheet(item: $shareFile) { f in
             ActivityView(items: [f.url])
                 .presentationDetents([.medium, .large])
@@ -173,13 +185,13 @@ struct SettingsView: View {
 
 extension SettingsView {
     /// Escribe el respaldo en un archivo temporal y abre Compartir.
-    fileprivate func exportBackup() {
-        guard let raw = store.exportJSON() else {
+    fileprivate func exportBackup(all: Bool) {
+        guard let raw = all ? store.exportAllJSON() : store.exportJSON() else {
             importMessage = L("No pude crear el respaldo.")
             return
         }
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("turniq-backup-\(Calc.todayYmd()).json")
+            .appendingPathComponent("turniq-backup-\(Calc.todayYmd())\(all ? "-cuentas" : "").json")
         do {
             try raw.write(to: url, options: [.atomic])
             importMessage = nil

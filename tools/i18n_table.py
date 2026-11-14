@@ -290,5 +290,10 @@ T = [
 ("Elige el país antes de añadir trabajos…", "Choose the country before adding jobs: once the account has data, the country and currency are fixed."),
 ("Cuentas por país: cada cuenta…", "Accounts per country: each account has its own jobs, shifts, paychecks and currency, and you switch between them from More."),
 ("El país y la moneda de una cuenta…", "An account's country and currency are fixed once it has jobs or shifts."),
-("El respaldo incluye solo la cuenta en uso…", "The backup only includes the account in use: export each account separately."),
+("Con varias cuentas, al exportar eliges…", "With several accounts, when exporting you choose whether the backup includes only the account in use or all of them; and in Shift reminders you decide whether to be notified about the account in use only or all of them."),
+("Avisos de todas las cuentas", "Reminders for all accounts"),
+("¿Qué quieres respaldar?", "What do you want to back up?"),
+("Solo esta cuenta (%@)", "Only this account (%@)"),
+("Todas las cuentas (%@)", "All accounts (%@)"),
+("Con varias cuentas se puede elegir…", "With several accounts you can choose: reminders for the account in use only or for all, and a backup of one account or all."),
 ]

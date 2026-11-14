@@ -103,6 +103,16 @@ final class Store: ObservableObject {
         return s
     }
 
+    /// Datos de las cuentas que NO están en uso (leídos de su archivo,
+    /// con las preferencias de la app).
+    private func otherAccountsData() -> [(account: Account, data: TurniqData)] {
+        accounts.filter { $0.id != activeId }.map { a in
+            var d = Self.load(Self.dataURL(a.id, in: docsURL))
+            d.settings = Self.merged(account: d.settings, app: data.settings)
+            return (account: a, data: d)
+        }
+    }
+
     /// Cambia a otra cuenta ya creada.
     func switchAccount(_ id: String) {
         guard id != activeId, accounts.contains(where: { $0.id == id }) else { return }
@@ -179,7 +189,11 @@ final class Store: ObservableObject {
         sideEffects = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             guard let self, !Task.isCancelled else { return }
-            Notifications.reschedule(data: self.data)
+            var all = [self.data]
+            if self.data.settings.avisosTodasCuentas {
+                all += self.otherAccountsData().map { $0.data }
+            }
+            Notifications.reschedule(all: all)
             CalendarSync.syncIfEnabled(data: self.data)
             WidgetBridge.update(data: self.data)
             LiveShift.sync(data: self.data)
@@ -203,8 +217,17 @@ final class Store: ObservableObject {
         // Una copia por día y por cuenta.
         let tag = activeId == Self.mainAccountId ? "" : "-\(activeId)"
         let file = backupsURL.appendingPathComponent("turniq-backup-\(Calc.todayYmd())\(tag).json")
-        guard !fm.fileExists(atPath: file.path), let raw = exportJSON() else { return }
-        try? raw.write(to: file, options: [.atomic])
+        if !fm.fileExists(atPath: file.path), let raw = exportJSON() {
+            try? raw.write(to: file, options: [.atomic])
+        }
+        // Las demás cuentas también tienen su copia del día.
+        for a in accounts where a.id != activeId {
+            let src = Self.dataURL(a.id, in: docsURL)
+            let dst = backupsURL.appendingPathComponent("turniq-backup-\(Calc.todayYmd())-\(a.id).json")
+            if fm.fileExists(atPath: src.path), !fm.fileExists(atPath: dst.path) {
+                try? fm.copyItem(at: src, to: dst)
+            }
+        }
         let names = ((try? fm.contentsOfDirectory(atPath: backupsURL.path)) ?? [])
             .filter { $0.hasPrefix("turniq-backup-") && $0.hasSuffix(".json") }
             .sorted()
@@ -442,20 +465,86 @@ final class Store: ObservableObject {
         return try? enc.encode(d)
     }
 
-    /// Importa fusionando (no borra): trabajos, turnos y plantillas
-    /// por id. Vale para respaldos de iOS y de Android.
-    func importMerge(_ raw: Data) -> Bool {
-        guard let other = try? JSONDecoder().decode(TurniqData.self, from: raw),
-              !(other.jobs.isEmpty && other.shifts.isEmpty && other.templates.isEmpty) else { return false }
-        var d = data
+    /// Respaldo con TODAS las cuentas en un solo archivo.
+    func exportAllJSON() -> Data? {
+        var entries: [AccountsBackup.Entry] = []
+        for a in accounts {
+            if a.id == activeId {
+                entries.append(AccountsBackup.Entry(cuenta: a, datos: data))
+            } else if let other = otherAccountsData().first(where: { $0.account.id == a.id }) {
+                entries.append(AccountsBackup.Entry(cuenta: a, datos: other.data))
+            }
+        }
+        let bundle = AccountsBackup(turniqCuentas: 1,
+                                    exportedAt: ISO8601DateFormatter().string(from: Date()),
+                                    activeId: activeId, cuentas: entries)
+        let enc = JSONEncoder()
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try? enc.encode(bundle)
+    }
+
+    /// Añade a `d` lo que trae `other` sin borrar nada: trabajos,
+    /// turnos y plantillas por id; cheques por trabajo y día de cobro.
+    /// Con `adoptCountry`, una cuenta vacía toma el país y la moneda
+    /// del respaldo.
+    private static func merge(_ other: TurniqData, into d: inout TurniqData, adoptCountry: Bool) {
+        let wasEmpty = d.jobs.isEmpty && d.shifts.isEmpty
         let jobIds = Set(d.jobs.map { $0.id })
         d.jobs.append(contentsOf: other.jobs.filter { !jobIds.contains($0.id) })
         let shiftIds = Set(d.shifts.map { $0.id })
         d.shifts.append(contentsOf: other.shifts.filter { !shiftIds.contains($0.id) })
         let tplIds = Set(d.templates.map { $0.id })
         d.templates.append(contentsOf: other.templates.filter { !tplIds.contains($0.id) })
+        let checks = Set(d.cheques.map { $0.jobId + "|" + $0.payday })
+        d.cheques.append(contentsOf: other.cheques.filter { !checks.contains($0.jobId + "|" + $0.payday) })
+        if adoptCountry && wasEmpty {
+            d.settings = merged(account: other.settings, app: d.settings)
+        }
+    }
+
+    /// Importa fusionando (no borra). Acepta un respaldo de una cuenta
+    /// (iOS o Android), que entra en la cuenta en uso, o un respaldo
+    /// de todas las cuentas, que se reparte cuenta por cuenta.
+    func importMerge(_ raw: Data) -> Bool {
+        if let bundle = try? JSONDecoder().decode(AccountsBackup.self, from: raw), !bundle.cuentas.isEmpty {
+            importAccounts(bundle)
+            return true
+        }
+        guard let other = try? JSONDecoder().decode(TurniqData.self, from: raw),
+              !(other.jobs.isEmpty && other.shifts.isEmpty && other.templates.isEmpty) else { return false }
+        var d = data
+        Self.merge(other, into: &d, adoptCountry: false)
         data = d
         return true
+    }
+
+    private func importAccounts(_ bundle: AccountsBackup) {
+        for e in bundle.cuentas {
+            let id = e.cuenta.id
+            let safe = !id.isEmpty && id.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" }
+            if id == activeId {
+                var d = data
+                Self.merge(e.datos, into: &d, adoptCountry: true)
+                data = d
+            } else if safe, let i = accounts.firstIndex(where: { $0.id == id }) {
+                let url = Self.dataURL(id, in: docsURL)
+                var d = Self.load(url)
+                Self.merge(e.datos, into: &d, adoptCountry: true)
+                if let out = try? JSONEncoder().encode(d) { try? out.write(to: url, options: [.atomic]) }
+                accounts[i].pais = d.settings.pais
+                accounts[i].moneda = d.settings.moneda
+            } else {
+                // Cuenta que no existe aquí: se crea con sus datos.
+                let newId = safe ? id : String(UUID().uuidString.prefix(8)).lowercased()
+                var d = e.datos
+                d.settings = Self.merged(account: e.datos.settings, app: data.settings)
+                let url = Self.dataURL(newId, in: docsURL)
+                if let out = try? JSONEncoder().encode(d) { try? out.write(to: url, options: [.atomic]) }
+                accounts.append(Account(id: newId, nombre: e.cuenta.nombre,
+                                        pais: d.settings.pais, moneda: d.settings.moneda))
+            }
+        }
+        saveIndex()
     }
 
     /// Borra los trabajos, turnos, plantillas y cheques de la cuenta

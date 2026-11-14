@@ -24,10 +24,33 @@ enum Notifications {
     }
 
     static func reschedule(data: TurniqData) {
+        reschedule(all: [data])
+    }
+
+    /// Bandera que se antepone al título cuando se avisa de varias cuentas.
+    private static var tag = ""
+
+    /// Reprograma los avisos de una o varias cuentas. La primera es
+    /// la que está en uso; las demás solo se pasan si el usuario
+    /// activó «Avisos de todas las cuentas».
+    static func reschedule(all: [TurniqData]) {
         let center = UNUserNotificationCenter.current()
         // El botón del aviso de llegada sigue el idioma de la app.
         NotificationDelegate.registerCategories()
         center.removeAllPendingNotificationRequests()
+        // iOS admite 64 avisos pendientes: se reparten entre las cuentas.
+        let limit = max(8, maxShiftNotices / max(1, all.count))
+        for (i, data) in all.enumerated() {
+            tag = all.count > 1 ? Countries.country(data.settings.pais).flag + " " : ""
+            // Los montos solo se escriben para la cuenta en uso, que es
+            // la que tiene cargada su moneda.
+            schedule(data, center: center, limit: limit, amounts: i == 0)
+        }
+        tag = ""
+    }
+
+    private static func schedule(_ data: TurniqData, center: UNUserNotificationCenter,
+                                 limit: Int, amounts: Bool) {
         let settings = data.settings
         let fmt12 = settings.formatoHora == "12h"
         let jobs = Dictionary(data.jobs.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -50,7 +73,7 @@ enum Notifications {
             }
         }
         pending.sort { $0.fire < $1.fire }
-        for p in pending.prefix(maxShiftNotices) {
+        for p in pending.prefix(limit) {
             add(center, id: p.id, title: p.title, body: p.body, fire: p.fire)
         }
 
@@ -118,7 +141,7 @@ enum Notifications {
         for job in data.jobs {
             for pay in Pay.upcoming(job, shifts: data.shifts, settings: settings, count: 2) {
                 guard let fire = Calc.date(pay.payday, "09:00"), fire > now else { continue }
-                let body = pay.closed && pay.totals.net > 0 && !settings.dineroOculto
+                let body = amounts && pay.closed && pay.totals.net > 0 && !settings.dineroOculto
                     ? L("Hoy cobras aproximadamente \(Calc.money(pay.totals.net)) (neto) por \(Calc.shortDate(pay.periodStart)) – \(Calc.shortDate(pay.periodEnd)).")
                     : L("Hoy te pagan en \(job.nombre). Abre Turniq para ver cuánto.")
                 add(center, id: "turniq-cobro-\(job.id)-\(pay.payday)",
@@ -129,7 +152,7 @@ enum Notifications {
 
     private static func add(_ center: UNUserNotificationCenter, id: String, title: String, body: String, fire: Date) {
         let content = UNMutableNotificationContent()
-        content.title = title
+        content.title = tag + title
         content.body = body
         content.sound = .default
         let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fire)

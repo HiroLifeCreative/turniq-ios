@@ -50,7 +50,7 @@ struct MasView: View {
     }
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.4.1"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.4.2"
     }
 
     var body: some View {
@@ -291,6 +291,9 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.4.2", "2026-11-14", [
+            L("Con varias cuentas se puede elegir: avisos solo de la cuenta en uso o de todas, y respaldo de una cuenta o de todas."),
+        ]),
         ("1.4.1", "2026-11-14", [
             L("Cuentas por país: cada cuenta tiene sus propios trabajos, turnos, cheques y moneda, y se cambia de una a otra desde Más."),
             L("El país y la moneda de una cuenta quedan fijos cuando ya tiene trabajos o turnos."),

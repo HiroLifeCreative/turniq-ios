@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.4.1, 14 nov 2026)
+## Estado (v1.4.2, 14 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -55,6 +55,18 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
 
+**Nuevo en 1.4.2**
+
+- **Avisos de todas las cuentas** (`Settings.avisosTodasCuentas`,
+  Ajustes → Avisos de turno, visible con más de una cuenta): apagado,
+  solo avisa de la cuenta en uso; encendido, también de las demás, con
+  la bandera del país en el título. Los montos del aviso de cobro solo
+  se escriben para la cuenta en uso.
+- **Respaldo de una cuenta o de todas**: al exportar con varias
+  cuentas se pregunta. El de todas (`AccountsBackup`) se importa
+  repartiendo cada cuenta en la suya o creándola si no existe.
+- La copia automática diaria guarda todas las cuentas.
+
 **Nuevo en 1.4.1**
 
 - **Cuentas por país** (`Account`, `Store.switchAccount`,
@@ -67,7 +79,8 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   por defecto, hora extra, meta semanal y día de cobro.
 - El país y la moneda de una cuenta quedan fijos cuando tiene trabajos
   o turnos (`Store.accountLocked`); para otro país se crea otra cuenta.
-- Avisos, calendario, widget y respaldo trabajan con la cuenta en uso.
+- El calendario, el widget y la Actividad en Vivo trabajan con la
+  cuenta en uso.
 
 **Nuevo en 1.4.0**
 
