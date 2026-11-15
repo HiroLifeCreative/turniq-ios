@@ -273,6 +273,7 @@ let enStrings: [String: String] = [
     "La hora extra se cuenta por cada trabajo por separado, nunca sumando todos tus trabajos. Si un turno queda abierto, se cierra solo a la hora de cierre automático del día siguiente.": "Overtime is counted for each job separately, never by adding all your jobs together. If a shift is left open, it closes on its own at the auto-close time the next day.",
     "La semana siguiente": "The following week",
     "Las horas reales marcadas mandan en el cálculo del dinero y se pueden corregir al editar el turno.": "Actual clocked hours drive the money calculation and can be corrected when editing a shift.",
+    "Las tarjetas de Inicio vuelven a su aspecto neutro.": "Home cards are back to their neutral look.",
     "Las tarjetas de turnos y trabajos llevan el color de cada trabajo.": "Shift and job cards now carry each job's color.",
     "Leer los términos y la política de privacidad": "Read the terms and the privacy policy",
     "Libre": "Off",

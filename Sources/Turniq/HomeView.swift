@@ -355,7 +355,7 @@ struct HomeView: View {
         let job = store.job(id: s.jobId)
         let cd = countdown(s, now: now)
         return Button { goTab(1) } label: {
-            Card(tint: job.map { T.hex($0.color) }) {
+            Card {
                 HStack(spacing: 12) {
                     Image(systemName: "bell.fill")
                         .font(.system(size: 18, weight: .semibold))
@@ -389,7 +389,7 @@ struct HomeView: View {
         let stations = s.estacionIds.compactMap { id in
             job?.estaciones.first(where: { $0.id == id })?.nombre
         }
-        return Card(tint: job.map { T.hex($0.color) }) {
+        return Card {
             HStack(spacing: 16) {
                 VStack(spacing: 0) {
                     Text(String(Int(s.fecha.suffix(2)) ?? 0))

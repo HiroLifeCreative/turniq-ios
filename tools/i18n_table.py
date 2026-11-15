@@ -314,4 +314,5 @@ T = [
 ("En Estados Unidos, Puerto Rico, Canadá…", "In the United States, Puerto Rico, Canada, the United Kingdom and Australia pay is always hourly; in other countries you choose the pay type."),
 ("¿Dónde trabajas?", "Where do you work?"),
 ("En Semana, el color del trabajo se aplica solo…", "In Week, the job color applies only to upcoming or in-progress shifts; past ones are gray again."),
+("Las tarjetas de Inicio vuelven a su aspecto neutro.", "Home cards are back to their neutral look."),
 ]

@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.5.1, 15 nov 2026)
+## Estado (v1.5.2, 15 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -78,8 +78,7 @@ tarjetas oscuras teñidas, modo claro y oscuro.
 
 - **Tarjetas con el color del trabajo**: `Card(tint:)` tiñe el fondo,
   el borde y la sombra con el color del trabajo. Se usa en los turnos
-  de Semana, el recordatorio y los próximos turnos de Inicio, la lista
-  de Trabajos, «Por trabajo» de Ganancias, Resumen anual y Comparar
+  de Semana, la lista de Trabajos, «Por trabajo» de Ganancias, Resumen anual y Comparar
   cheques. En Semana el color solo tiñe los turnos próximos o en
   curso; los pasados y los no marcados usan la tarjeta neutra con la
   barra del color de su estado (desde 1.5.1).
