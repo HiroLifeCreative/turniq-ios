@@ -88,10 +88,17 @@ enum LiveShift {
             scheduledEnd = e
         }
         let rate = Calc.rate(s, job: job) * Calc.multiplier(s) * (1 - (job?.taxPct ?? 0) / 100)
+        // Por día, sueldo fijo y por turno no se cobra por hora: la
+        // actividad muestra el neto fijo del día o del turno.
+        var rateText = Calc.money(rate)
+        if let job, job.payMode != .hora {
+            let unit = job.payMode == .turno ? L("turno") : L("día")
+            rateText = "\(Calc.money(Calc.liveNet(s, job: job, seconds: 0)))/\(unit)"
+        }
         let state = ShiftActivityAttributes.ContentState(
             start: start, scheduledEnd: scheduledEnd,
             netPerHour: rate, hideMoney: data.settings.dineroOculto, english: Lang.en,
-            netPerHourText: Calc.money(rate))
+            netPerHourText: rateText)
         let content = ActivityContent(state: state, staleDate: nil)
 
         if let current = running.first(where: { $0.attributes.shiftId == s.id }) {

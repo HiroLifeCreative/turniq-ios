@@ -274,6 +274,8 @@ let enStrings: [String: String] = [
     "La semana siguiente": "The following week",
     "Las horas reales marcadas mandan en el cálculo del dinero y se pueden corregir al editar el turno.": "Actual clocked hours drive the money calculation and can be corrected when editing a shift.",
     "Las tarjetas de Inicio vuelven a su aspecto neutro.": "Home cards are back to their neutral look.",
+    "Por día y sueldo fijo ya no pagan dos veces las horas extra que cubre el pago del día.": "Per-day and fixed salary no longer pay twice for overtime hours already covered by the day's pay.",
+    "La Actividad en Vivo muestra el neto del día o del turno cuando el trabajo no cobra por hora.": "The Live Activity shows the day's or shift's net pay when the job isn't paid by the hour.",
     "Las tarjetas de turnos y trabajos llevan el color de cada trabajo.": "Shift and job cards now carry each job's color.",
     "Leer los términos y la política de privacidad": "Read the terms and the privacy policy",
     "Libre": "Off",

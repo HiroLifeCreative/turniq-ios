@@ -315,4 +315,6 @@ T = [
 ("¿Dónde trabajas?", "Where do you work?"),
 ("En Semana, el color del trabajo se aplica solo…", "In Week, the job color applies only to upcoming or in-progress shifts; past ones are gray again."),
 ("Las tarjetas de Inicio vuelven a su aspecto neutro.", "Home cards are back to their neutral look."),
+("Por día y sueldo fijo ya no pagan dos veces las horas extra que cubre el pago del día.", "Per-day and fixed salary no longer pay twice for overtime hours already covered by the day's pay."),
+("La Actividad en Vivo muestra el neto del día o del turno cuando el trabajo no cobra por hora.", "The Live Activity shows the day's or shift's net pay when the job isn't paid by the hour."),
 ]

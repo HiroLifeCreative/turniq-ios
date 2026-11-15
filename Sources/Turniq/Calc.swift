@@ -260,6 +260,7 @@ enum Calc {
         struct Acc {
             var hours = 0.0, base = 0.0, plain = 0.0, night = 0.0, tipsBonus = 0.0
             var days: [String: Double] = [:]
+            var dayHours: [String: Double] = [:]
         }
         var byJob: [String: Acc] = [:]
         for s in shifts where !s.esLibre {
@@ -280,6 +281,7 @@ enum Calc {
                 acc.base += (job?.amount ?? 0) * multiplier(s)
             case .dia, .fijo:
                 acc.days[s.fecha] = max(acc.days[s.fecha] ?? 0, multiplier(s))
+                acc.dayHours[s.fecha, default: 0] += h
             }
             acc.tipsBonus += s.propinas + s.bono
             byJob[s.jobId] = acc
@@ -303,8 +305,10 @@ enum Calc {
                 g += acc.base
             case .dia, .fijo:
                 // Cada día trabajado vale lo mismo, sin importar sus
-                // horas. Las horas extra se pagan aparte, enteras, al
-                // valor de la hora derivado.
+                // horas. De las horas extra, las que pasan de la jornada
+                // de su día se pagan enteras al valor de la hora
+                // derivado; las que ya cubre el pago del día, solo el
+                // recargo (como en «por hora»).
                 let dayValue = job?.dayValue ?? 0
                 g += acc.days.values.reduce(0) { $0 + dayValue * $1 }
                 if mode == .dia, job?.septimoDia == true {
@@ -314,7 +318,13 @@ enum Calc {
                     for day in acc.days.keys { perWeek[monday(of: day), default: 0] += 1 }
                     for n in perWeek.values { g += Double(min(n, 6)) / 6 * dayValue }
                 }
-                g += ot * (job?.hourlyValue ?? 0) * multExtra
+                let hv = job?.hourlyValue ?? 0
+                let jornada = job.map { $0.payMode == .dia
+                    ? max(1, $0.horasDia ?? 8)
+                    : max(1, $0.horasMes ?? 173.33) * 12 / 52 / Double(max(1, $0.diasSemana ?? 5)) } ?? 8
+                let uncovered = acc.dayHours.values.reduce(0) { $0 + max(0, $1 - jornada) }
+                let otFull = min(ot, uncovered)
+                g += otFull * hv * multExtra + (ot - otFull) * hv * (multExtra - 1)
             }
             t.hours += acc.hours
             t.regularHours += reg

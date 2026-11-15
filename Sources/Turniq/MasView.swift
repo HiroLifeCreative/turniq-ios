@@ -50,7 +50,7 @@ struct MasView: View {
     }
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.5.2"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.5.3"
     }
 
     var body: some View {
@@ -291,6 +291,10 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.5.3", "2026-11-15", [
+            L("Por día y sueldo fijo ya no pagan dos veces las horas extra que cubre el pago del día."),
+            L("La Actividad en Vivo muestra el neto del día o del turno cuando el trabajo no cobra por hora."),
+        ]),
         ("1.5.2", "2026-11-15", [
             L("Las tarjetas de Inicio vuelven a su aspecto neutro."),
         ]),

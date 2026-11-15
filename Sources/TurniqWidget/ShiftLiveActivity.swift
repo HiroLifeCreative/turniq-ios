@@ -41,7 +41,7 @@ struct ShiftLiveActivity: Widget {
                             .tint(WColor.button)
                         }
                         HStack {
-                            Text(verbatim: (context.state.english == true ? "Net " : "Neto ") + (context.state.hideMoney ? "••••" : (context.state.netPerHourText ?? WFmt.money(context.state.netPerHour, hidden: false))) + "/h")
+                            Text(verbatim: (context.state.english == true ? "Net " : "Neto ") + (context.state.hideMoney ? "••••/h" : (context.state.netPerHourText.map { $0.contains("/") ? $0 : $0 + "/h" } ?? WFmt.money(context.state.netPerHour, hidden: false) + "/h")))
                             Spacer()
                             if let pin = context.attributes.pin, !pin.isEmpty {
                                 Text("PIN \(pin)")
@@ -101,7 +101,7 @@ struct LockScreenLiveView: View {
                 .tint(WColor.button)
             }
             HStack {
-                Text(verbatim: (state.english == true ? "Net " : "Neto ") + (state.hideMoney ? "••••" : (state.netPerHourText ?? WFmt.money(state.netPerHour, hidden: false))) + "/h")
+                Text(verbatim: (state.english == true ? "Net " : "Neto ") + (state.hideMoney ? "••••/h" : (state.netPerHourText.map { $0.contains("/") ? $0 : $0 + "/h" } ?? WFmt.money(state.netPerHour, hidden: false) + "/h")))
                 if let end = state.scheduledEnd {
                     if state.english == true {
                         Text("· Ends \(end, style: .time)")
