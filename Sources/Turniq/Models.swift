@@ -68,6 +68,22 @@ struct Job: Codable, Identifiable, Equatable {
     /// dólares. nil o 0 = sin extra nocturno.
     var nocturnoExtra: Double?
 
+    // MARK: Forma de pago (ver PayMode.swift)
+    /// "hora" | "dia" | "fijo" | "turno". nil = por hora.
+    var pagoTipo: String?
+    /// Monto por día, por turno o por periodo (según pagoTipo)
+    var pagoMonto: Double?
+    /// Sueldo fijo: "semanal" | "quincenal" | "mensual"
+    var pagoPeriodo: String?
+    /// Sueldo fijo: días que se trabajan por semana
+    var diasSemana: Int?
+    /// Por día: horas de una jornada (para el valor de la hora extra)
+    var horasDia: Double?
+    /// Sueldo fijo: horas de un mes (para el valor de la hora extra)
+    var horasMes: Double?
+    /// Por día: paga un día de descanso por cada seis trabajados
+    var septimoDia: Bool?
+
     // Misma paleta que Android (JOB_COLORS).
     static let palette: [String] = [
         "#0064E0", "#7C3AED", "#0E7C3E", "#D97706",
@@ -92,6 +108,13 @@ extension Job {
         lat = c.opt(.lat)
         lon = c.opt(.lon)
         nocturnoExtra = c.opt(.nocturnoExtra)
+        pagoTipo = c.opt(.pagoTipo)
+        pagoMonto = c.opt(.pagoMonto)
+        pagoPeriodo = c.opt(.pagoPeriodo)
+        diasSemana = c.opt(.diasSemana)
+        horasDia = c.opt(.horasDia)
+        horasMes = c.opt(.horasMes)
+        septimoDia = c.opt(.septimoDia)
     }
 }
 

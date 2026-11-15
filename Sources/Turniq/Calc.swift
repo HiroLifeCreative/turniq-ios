@@ -140,6 +140,9 @@ enum Calc {
     /// marcada que tenga tarifa propia; si ninguna, el del trabajo.
     static func rate(_ s: Shift, job: Job?) -> Double {
         guard let job else { return 0 }
+        // Fuera del pago por hora, la "tarifa" es el valor de la hora
+        // que se deriva del salario diario o del sueldo fijo.
+        guard job.payMode == .hora else { return job.hourlyValue }
         for id in s.estacionIds {
             if let st = job.estaciones.first(where: { $0.id == id }),
                let r = st.sueldoHora, r > 0 {
@@ -252,20 +255,31 @@ enum Calc {
         // Por trabajo: horas, pago base (con la tarifa y el
         // multiplicador de cada turno), pago a tarifa simple (para el
         // promedio de la hora extra), extra nocturno y propinas+bono.
+        // `days` guarda, para «por día» y «sueldo fijo», cada fecha
+        // trabajada con su mayor multiplicador (un feriado vale doble).
         struct Acc {
             var hours = 0.0, base = 0.0, plain = 0.0, night = 0.0, tipsBonus = 0.0
+            var days: [String: Double] = [:]
         }
         var byJob: [String: Acc] = [:]
         for s in shifts where !s.esLibre {
             let job = jobsById[s.jobId]
+            let mode = job?.payMode ?? .hora
             let h = shiftHours(s)
-            let r = rate(s, job: job)
             var acc = byJob[s.jobId] ?? Acc()
             acc.hours += h
-            acc.base += h * r * multiplier(s)
-            acc.plain += h * r
-            if let extra = job?.nocturnoExtra, extra > 0 {
-                acc.night += nightHours(s) * extra
+            switch mode {
+            case .hora:
+                let r = rate(s, job: job)
+                acc.base += h * r * multiplier(s)
+                acc.plain += h * r
+                if let extra = job?.nocturnoExtra, extra > 0 {
+                    acc.night += nightHours(s) * extra
+                }
+            case .turno:
+                acc.base += (job?.amount ?? 0) * multiplier(s)
+            case .dia, .fijo:
+                acc.days[s.fecha] = max(acc.days[s.fecha] ?? 0, multiplier(s))
             }
             acc.tipsBonus += s.propinas + s.bono
             byJob[s.jobId] = acc
@@ -273,14 +287,35 @@ enum Calc {
         var t = WeekTotals()
         for (jobId, acc) in byJob {
             let job = jobsById[jobId]
+            let mode = job?.payMode ?? .hora
             let taxRate = (job?.taxPct ?? 0) / 100.0
             let reg = min(acc.hours, umbralExtraHrs)
             let ot = max(0, acc.hours - umbralExtraHrs)
-            // El recargo de hora extra usa la tarifa promedio de la
-            // semana en ese trabajo. Con una sola tarifa da lo mismo
-            // que antes: normales × sueldo + extra × sueldo × recargo.
-            let avgRate = acc.hours > 0 ? acc.plain / acc.hours : 0
-            let g = acc.base + ot * avgRate * (multExtra - 1) + acc.night + acc.tipsBonus
+            var g = acc.tipsBonus
+            switch mode {
+            case .hora:
+                // El recargo de hora extra usa la tarifa promedio de la
+                // semana en ese trabajo. Con una sola tarifa da lo mismo
+                // que: normales × sueldo + extra × sueldo × recargo.
+                let avgRate = acc.hours > 0 ? acc.plain / acc.hours : 0
+                g += acc.base + ot * avgRate * (multExtra - 1) + acc.night
+            case .turno:
+                g += acc.base
+            case .dia, .fijo:
+                // Cada día trabajado vale lo mismo, sin importar sus
+                // horas. Las horas extra se pagan aparte, enteras, al
+                // valor de la hora derivado.
+                let dayValue = job?.dayValue ?? 0
+                g += acc.days.values.reduce(0) { $0 + dayValue * $1 }
+                if mode == .dia, job?.septimoDia == true {
+                    // Séptimo día: por cada semana, un sexto de día
+                    // pagado por cada día trabajado (hasta seis).
+                    var perWeek: [String: Int] = [:]
+                    for day in acc.days.keys { perWeek[monday(of: day), default: 0] += 1 }
+                    for n in perWeek.values { g += Double(min(n, 6)) / 6 * dayValue }
+                }
+                g += ot * (job?.hourlyValue ?? 0) * multExtra
+            }
             t.hours += acc.hours
             t.regularHours += reg
             t.overtimeHours += ot
@@ -316,6 +351,19 @@ enum Calc {
     static func hours(ofJob jobId: String, in shifts: [Shift]) -> Double {
         shifts.filter { $0.jobId == jobId && !$0.esLibre }
             .reduce(0) { $0 + shiftHours($1) }
+    }
+
+    /// Neto estimado de un turno en curso. Por hora crece con el
+    /// tiempo; en las demás formas de pago es el valor fijo del día
+    /// o del turno.
+    static func liveNet(_ s: Shift, job: Job?, seconds: Int) -> Double {
+        guard let job else { return 0 }
+        let tax = job.taxPct / 100
+        if job.payMode == .hora {
+            return rate(s, job: job) * multiplier(s) * Double(seconds) / 3600 * (1 - tax)
+        }
+        let value = job.payMode == .turno ? job.amount : job.dayValue
+        return value * multiplier(s) * (1 - tax)
     }
 
     // MARK: Aviso de hora extra

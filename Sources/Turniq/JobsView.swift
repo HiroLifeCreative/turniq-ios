@@ -45,7 +45,7 @@ struct JobsView: View {
     }
 
     private func jobCard(_ job: Job) -> some View {
-        var detail = "\(Calc.money(job.sueldoHora))/h · \(ShiftFormView.num(job.taxPct))% tax"
+        var detail = "\(job.wageLabel) · \(ShiftFormView.num(job.taxPct))% tax"
         if !job.estaciones.isEmpty {
             detail += " · " + job.estaciones.map { $0.nombre }.joined(separator: ", ")
         }
@@ -98,7 +98,18 @@ struct JobFormView: View {
     @State private var lon: Double? = nil
     @StateObject private var locator = LocationOnce()
     @State private var nocturno = ""
+    @State private var mode: PayMode = .hora
+    @State private var monto = ""
+    @State private var periodo: SalaryPeriod = .mensual
+    @State private var diasSemana = 5
+    @State private var horasDia = "8"
+    @State private var horasMes = ""
+    @State private var septimo = false
     @State private var loaded = false
+
+    /// En los países donde la hora es el estándar no hay selector.
+    private var hourlyOnly: Bool { Countries.country(store.settings.pais).hourlyOnly }
+    private var payMode: PayMode { hourlyOnly ? .hora : mode }
 
     /// El trabajo tal como quedaría, para la vista previa del cobro.
     private var draft: Job {
@@ -118,7 +129,14 @@ struct JobFormView: View {
             pagoRetraso: lag,
             lat: lat,
             lon: lon,
-            nocturnoExtra: ShiftFormView.parse(nocturno) > 0 ? ShiftFormView.parse(nocturno) : nil
+            nocturnoExtra: ShiftFormView.parse(nocturno) > 0 ? ShiftFormView.parse(nocturno) : nil,
+            pagoTipo: payMode == .hora ? nil : payMode.rawValue,
+            pagoMonto: payMode == .hora ? nil : ShiftFormView.parse(monto),
+            pagoPeriodo: payMode == .fijo ? periodo.rawValue : nil,
+            diasSemana: payMode == .fijo ? diasSemana : nil,
+            horasDia: payMode == .dia ? max(1, ShiftFormView.parse(horasDia)) : nil,
+            horasMes: payMode == .fijo ? max(1, ShiftFormView.parse(horasMes)) : nil,
+            septimoDia: payMode == .dia ? septimo : nil
         )
     }
 
@@ -147,17 +165,9 @@ struct JobFormView: View {
                         }
                     }
                     .padding(.vertical, 4)
-                    LabeledContent(L("Sueldo por hora (\(Money.symbol))")) {
-                        TextField("15", text: $sueldo)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("Taxes (%)") {
-                        TextField("0", text: $tax)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                    }
                 }
+
+                paySection
 
                 Section {
                     Picker(L("Me pagan"), selection: $freq) {
@@ -226,6 +236,7 @@ struct JobFormView: View {
                     Text(L("El PIN que marcas en el reloj de este trabajo. Turniq te lo muestra al marcar entrada, para que no se te olvide."))
                 }
 
+                if payMode == .hora {
                 Section {
                     LabeledContent(L("Extra nocturno (\(Money.symbol)/h)")) {
                         TextField("0", text: $nocturno)
@@ -236,6 +247,7 @@ struct JobFormView: View {
                     Text(L("Tarifas especiales"))
                 } footer: {
                     Text(L("El extra nocturno se suma por cada hora trabajada entre las 10 p. m. y las 6 a. m. Cada estación puede tener su propio sueldo (abajo), y el pago doble de un feriado se marca en el turno."))
+                }
                 }
 
                 Section {
@@ -297,6 +309,13 @@ struct JobFormView: View {
             tax = ShiftFormView.num(e.taxPct)
             pinReloj = e.pinMarcaje ?? ""
             nocturno = e.nocturnoExtra.map { ShiftFormView.num($0) } ?? ""
+            mode = e.payMode
+            monto = e.amount > 0 ? ShiftFormView.num(e.amount) : ""
+            periodo = e.salaryPeriod
+            diasSemana = e.diasSemana ?? defaultDays
+            horasDia = ShiftFormView.num(e.horasDia ?? 8)
+            horasMes = ShiftFormView.num((e.horasMes ?? defaultMonthHours).rounded())
+            septimo = e.septimoDia ?? false
             estaciones = e.estaciones
             freq = Pay.freq(e)
             lag = Pay.lag(e)
@@ -308,9 +327,98 @@ struct JobFormView: View {
         } else {
             color = Job.palette.randomElement() ?? Job.palette[0]
             tax = ShiftFormView.num(store.settings.taxDefault)
+            mode = Countries.country(store.settings.pais).defaultPayMode
+            diasSemana = defaultDays
+            horasMes = ShiftFormView.num(defaultMonthHours.rounded())
             payDay = min(6, max(0, store.settings.diaCobro))
             let delta = ((payDay - Calc.weekdayIndex(today)) + 7) % 7
             anchor = Calc.parseDay(Calc.addDays(today, delta)) ?? Date()
+        }
+    }
+
+    /// Forma de pago y monto. Va aparte para que el formulario no sea
+    /// una sola expresión enorme.
+    @ViewBuilder
+    private var paySection: some View {
+        Section {
+            if !hourlyOnly {
+                Picker(L("Forma de pago"), selection: $mode) {
+                    ForEach(PayMode.allCases) { m in
+                        Text(m.label).tag(m)
+                    }
+                }
+            }
+            switch payMode {
+            case .hora:
+                LabeledContent(L("Sueldo por hora (\(Money.symbol))")) {
+                    TextField("15", text: $sueldo)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                }
+            case .dia:
+                LabeledContent(L("Salario por día (\(Money.symbol))")) {
+                    TextField("0", text: $monto)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                }
+                LabeledContent(L("Horas de una jornada")) {
+                    TextField("8", text: $horasDia)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                }
+                Toggle(L("Séptimo día pagado"), isOn: $septimo)
+            case .fijo:
+                Picker(L("Sueldo"), selection: $periodo) {
+                    ForEach(SalaryPeriod.allCases) { p in
+                        Text(p.label).tag(p)
+                    }
+                }
+                LabeledContent(L("Monto (\(Money.symbol))")) {
+                    TextField("0", text: $monto)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                }
+                Stepper(L("Días por semana: \(diasSemana)"), value: $diasSemana, in: 1...7)
+                LabeledContent(L("Horas al mes")) {
+                    TextField("173", text: $horasMes)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                }
+            case .turno:
+                LabeledContent(L("Pago por turno (\(Money.symbol))")) {
+                    TextField("0", text: $monto)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+            LabeledContent("Taxes (%)") {
+                TextField("0", text: $tax)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+            }
+        } header: {
+            Text(L("Pago"))
+        } footer: {
+            Text(payHelp)
+        }
+    }
+
+    /// Valores de partida según la jornada semanal de la cuenta.
+    private var defaultDays: Int { store.settings.umbralExtraHrs >= 44 ? 6 : 5 }
+    private var defaultMonthHours: Double { store.settings.umbralExtraHrs * 52 / 12 }
+
+    /// Explica cómo se calcula el dinero con la forma de pago elegida.
+    private var payHelp: String {
+        let j = draft
+        switch payMode {
+        case .hora:
+            return L("Se paga cada hora trabajada.")
+        case .dia:
+            return L("Cada día trabajado vale el salario diario, sin importar sus horas. Con el séptimo día, cada día trabajado suma un sexto de día de descanso pagado (hasta seis por semana). La hora extra se paga a \(Calc.money(j.hourlyValue)) por hora, antes del recargo.")
+        case .fijo:
+            return L("Cada día trabajado vale \(Calc.money(j.dayValue)): el sueldo repartido entre los días de la semana, sin importar las horas. La hora extra se paga a \(Calc.money(j.hourlyValue)) por hora (sueldo del mes entre las horas al mes), antes del recargo.")
+        case .turno:
+            return L("Cada turno vale lo mismo, sin importar sus horas. No se calcula hora extra.")
         }
     }
 

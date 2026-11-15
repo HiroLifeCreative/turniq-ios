@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.4.3, 15 nov 2026)
+## Estado (v1.5.0, 15 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,25 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.5.0**
+
+- **Formas de pago por trabajo** (`PayMode.swift`, `Job.pagoTipo`):
+  - `hora`: horas × sueldo por hora (como siempre).
+  - `dia`: cada día trabajado vale el salario diario; séptimo día
+    opcional (un sexto de día por cada día trabajado, hasta seis por
+    semana).
+  - `fijo`: sueldo por semana, quincena o mes; cada día trabajado
+    vale el sueldo semanal entre los días por semana, sin importar las
+    horas.
+  - `turno`: un monto por turno.
+  En `dia` y `fijo` la hora extra se paga aparte al valor de la hora
+  derivado (salario diario ÷ horas de la jornada; sueldo del mes ÷
+  horas al mes). En `turno` no hay hora extra.
+- **Por país** (`Country.hourlyOnly`): en US, PR, CA, GB y AU solo hay
+  pago por hora y no se muestra el selector. En los demás países se
+  elige; por defecto México propone «por día» y el resto «sueldo
+  fijo». Android todavía no lee estos campos.
 
 **Nuevo en 1.4.3**
 

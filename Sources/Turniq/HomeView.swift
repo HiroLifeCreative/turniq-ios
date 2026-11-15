@@ -296,9 +296,7 @@ struct HomeView: View {
             totalSecs = max(60, (o - i) * 60)
         }
         let pct = min(1, Double(secs) / Double(totalSecs))
-        let rate = Calc.rate(s, job: job) * Calc.multiplier(s)
-        let tax = (job?.taxPct ?? 0) / 100
-        let liveNet = rate * Double(secs) / 3600 * (1 - tax)
+        let liveNet = Calc.liveNet(s, job: job, seconds: secs)
 
         return HStack(spacing: 16) {
             ZStack {

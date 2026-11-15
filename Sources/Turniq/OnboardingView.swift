@@ -62,6 +62,8 @@ struct OnboardingView: View {
     @State private var tax = "0"
     @State private var color = Job.palette[0]
     @State private var freq: PayFreq = .semanal
+    @State private var mode: PayMode = .hora
+    @State private var modeChosen = false
 
     private var steps: [(icon: String, label: String)] {
         [
@@ -391,10 +393,24 @@ struct OnboardingView: View {
     private var jobStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             title(L("Registra tu trabajo"),
-                  L("¿Dónde trabajas? Agrega tu sueldo por hora y el % de taxes."))
+                  L("¿Dónde trabajas? Agrega cuánto te pagan y el % de taxes."))
             field(L("Nombre del trabajo"), text: $jobName)
+            // En los países donde la hora es el estándar no se pregunta.
+            if !country.hourlyOnly {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L("FORMA DE PAGO")).font(.turniqMono).foregroundStyle(.white.opacity(0.55))
+                    HStack(spacing: 6) {
+                        ForEach(PayMode.allCases) { m in
+                            chip(m.label, active: jobMode == m) {
+                                mode = m
+                                modeChosen = true
+                            }
+                        }
+                    }
+                }
+            }
             HStack(spacing: 12) {
-                field(L("Sueldo por hora (\(Money.symbol))"), text: $wage, keyboard: .decimalPad)
+                field(wageLabel, text: $wage, keyboard: .decimalPad)
                 field("Taxes (%)", text: $tax, keyboard: .decimalPad)
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -420,6 +436,22 @@ struct OnboardingView: View {
             Text(L("Después puedes añadir más trabajos, estaciones, el día de cobro y el PIN del reloj en la pestaña Trabajos."))
                 .font(.turniq(13)).foregroundStyle(.white.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Forma de pago del primer trabajo: la que elija el usuario o, si
+    /// no ha tocado nada, la habitual del país.
+    private var jobMode: PayMode {
+        if country.hourlyOnly { return .hora }
+        return modeChosen ? mode : country.defaultPayMode
+    }
+
+    private var wageLabel: String {
+        switch jobMode {
+        case .hora: return L("Sueldo por hora (\(Money.symbol))")
+        case .dia: return L("Salario por día (\(Money.symbol))")
+        case .fijo: return L("Sueldo al mes (\(Money.symbol))")
+        case .turno: return L("Pago por turno (\(Money.symbol))")
         }
     }
 
@@ -476,12 +508,22 @@ struct OnboardingView: View {
         case 3:
             let n = jobName.trimmingCharacters(in: .whitespaces)
             if !n.isEmpty {
+                let m = jobMode
+                let amount = ShiftFormView.parse(wage)
+                let weekHours = store.settings.umbralExtraHrs
                 store.upsertJob(Job(
                     id: UUID().uuidString, nombre: n, color: color,
-                    sueldoHora: ShiftFormView.parse(wage),
+                    sueldoHora: m == .hora ? amount : 0,
                     taxPct: min(100, ShiftFormView.parse(tax)),
                     estaciones: [], pinMarcaje: nil,
-                    pagoFrecuencia: freq.rawValue))
+                    pagoFrecuencia: freq.rawValue,
+                    pagoTipo: m == .hora ? nil : m.rawValue,
+                    pagoMonto: m == .hora ? nil : amount,
+                    pagoPeriodo: m == .fijo ? SalaryPeriod.mensual.rawValue : nil,
+                    diasSemana: m == .fijo ? (weekHours >= 44 ? 6 : 5) : nil,
+                    horasDia: m == .dia ? 8 : nil,
+                    horasMes: m == .fijo ? (weekHours * 52 / 12).rounded() : nil,
+                    septimoDia: nil))
             }
         default:
             store.setSettings { $0.onboardingDone = true }

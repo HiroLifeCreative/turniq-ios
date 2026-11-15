@@ -121,7 +121,7 @@ struct ShiftDetailSheet: View {
                                      color: T.money, alignment: .trailing)
                         }
                         HStack(alignment: .top) {
-                            DarkStat(label: L("Sueldo"), value: hidden ? "••••" : "\(Calc.money(Calc.rate(s, job: job)))/h" + (Calc.multiplier(s) != 1 ? " ×\(ShiftFormView.num(Calc.multiplier(s)))" : ""))
+                            DarkStat(label: L("Sueldo"), value: hidden ? "••••" : wageText(s, job: job))
                             Spacer()
                             DarkStat(label: "Taxes", value: T.cash(pay.taxes, hidden: hidden), alignment: .trailing)
                         }
@@ -181,6 +181,14 @@ struct ShiftDetailSheet: View {
             }
             .buttonStyle(PressStyle())
         }
+    }
+
+    /// Sueldo que aplica a este turno, según la forma de pago.
+    private func wageText(_ s: Shift, job: Job?) -> String {
+        guard let job else { return "—" }
+        var text = job.payMode == .hora ? "\(Calc.money(Calc.rate(s, job: job)))/h" : job.wageLabel
+        if Calc.multiplier(s) != 1 { text += " ×\(ShiftFormView.num(Calc.multiplier(s)))" }
+        return text
     }
 
     private var line: some View {
