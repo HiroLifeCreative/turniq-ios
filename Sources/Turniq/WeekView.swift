@@ -259,9 +259,11 @@ struct WeekView: View {
         var subtitle = job?.nombre ?? ""
         if !stations.isEmpty { subtitle += " · " + stations.joined(separator: ", ") }
         if s.esLibre { subtitle = L("Día libre") }
-        // La tarjeta lleva el color del trabajo; el estado del turno
-        // lo cuentan las horas y la etiqueta de la derecha.
-        let jobColor: Color? = s.esLibre ? nil : job.map { T.hex($0.color) }
+        // El color del trabajo solo tiñe los turnos que faltan o están
+        // en curso. Un turno que ya pasó (o no se marcó) vuelve a la
+        // tarjeta neutra, con la barra del color de su estado.
+        let pending = st == .upcoming || st == .now
+        let jobColor: Color? = (s.esLibre || !pending) ? nil : job.map { T.hex($0.color) }
         return Card(tint: jobColor) {
             HStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 2.5)

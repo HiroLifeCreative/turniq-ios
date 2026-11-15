@@ -50,7 +50,7 @@ struct MasView: View {
     }
 
     private var version: String {
-        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.5.0"
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.5.1"
     }
 
     var body: some View {
@@ -291,6 +291,9 @@ struct MasView: View {
 /// Novedades de la versión de iOS.
 struct ChangelogView: View {
     private let entries: [(version: String, fecha: String, notas: [String])] = [
+        ("1.5.1", "2026-11-15", [
+            L("En Semana, el color del trabajo se aplica solo a los turnos próximos o en curso; los que ya pasaron vuelven a verse en gris."),
+        ]),
         ("1.5.0", "2026-11-15", [
             L("Formas de pago por trabajo: por hora, por día, sueldo fijo (semana, quincena o mes) y por turno."),
             L("En Estados Unidos, Puerto Rico, Canadá, Reino Unido y Australia el pago es siempre por hora; en los demás países se elige la forma de pago."),

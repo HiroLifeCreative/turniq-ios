@@ -207,6 +207,7 @@ let enStrings: [String: String] = [
     "Empezar": "Get started",
     "En %@ días": "In %@ days",
     "En Estados Unidos, Puerto Rico, Canadá, Reino Unido y Australia el pago es siempre por hora; en los demás países se elige la forma de pago.": "In the United States, Puerto Rico, Canada, the United Kingdom and Australia pay is always hourly; in other countries you choose the pay type.",
+    "En Semana, el color del trabajo se aplica solo a los turnos próximos o en curso; los que ya pasaron vuelven a verse en gris.": "In Week, the job color applies only to upcoming or in-progress shifts; past ones are gray again.",
     "En curso": "In progress",
     "En iPhone los avisos son notificaciones con sonido; Apple no permite alarmas a pantalla completa a otras apps.": "On iPhone, reminders are notifications with sound; Apple doesn't allow full-screen alarms from other apps.",
     "En uso": "In use",
