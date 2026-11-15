@@ -122,6 +122,7 @@ struct OnboardingView: View {
                         }
                     }
             }
+            .turniqSheet()
         }
         .sheet(isPresented: $pickingCountry) {
             CountryPicker(selected: store.settings.pais) { c in

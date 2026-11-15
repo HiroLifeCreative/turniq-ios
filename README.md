@@ -12,7 +12,7 @@ Mismo modelo de datos y mismas reglas que la app de Android:
 - Turnos que cruzan medianoche (+1 día), plantillas en el modelo,
   respaldo JSON compatible con el de Android.
 
-## Estado (v1.4.2, 14 nov 2026)
+## Estado (v1.4.3, 15 nov 2026)
 
 **Ícono de la app:** `Assets/AppIcon.png` (1024×1024, el mismo de
 Android). xtool lo empaqueta con `iconPath` en `xtool.yml`.
@@ -54,6 +54,18 @@ tarjetas oscuras teñidas, modo claro y oscuro.
   días de cobro en un calendario propio «Turniq», de 7 días atrás a 60
   adelante; se actualiza solo con cada cambio.
 - **Aviso del día de cobro** a las 9:00 a. m.
+
+**Nuevo en 1.4.3**
+
+- **Tarjetas con el color del trabajo**: `Card(tint:)` tiñe el fondo,
+  el borde y la sombra con el color del trabajo. Se usa en los turnos
+  de Semana, el recordatorio y los próximos turnos de Inicio, la lista
+  de Trabajos, «Por trabajo» de Ganancias, Resumen anual y Comparar
+  cheques. En Semana la barra lateral también es del color del
+  trabajo; el estado del turno queda en las horas y la etiqueta.
+- **Hojas más redondeadas**: `turniqSheet()` aplica un radio de 38 a
+  todas las hojas (detalle del turno, formularios, Más, selector de
+  país, compartir).
 
 **Nuevo en 1.4.2**
 

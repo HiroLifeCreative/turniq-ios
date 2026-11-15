@@ -51,7 +51,7 @@ struct ShiftDetailSheet: View {
             }
         }
         .font(.turniq(15))
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large]).turniqSheet()
         .presentationDragIndicator(.visible)
     }
 

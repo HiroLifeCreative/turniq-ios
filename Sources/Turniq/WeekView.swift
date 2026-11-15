@@ -74,13 +74,13 @@ struct WeekView: View {
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: detail?.id)
         .sheet(item: $shareFile) { f in
-            ActivityView(items: [f.url]).presentationDetents([.medium, .large])
+            ActivityView(items: [f.url]).presentationDetents([.medium, .large]).turniqSheet()
         }
         .sheet(item: $editing) { s in
-            ShiftFormView(editing: s)
+            ShiftFormView(editing: s).turniqSheet()
         }
         .sheet(item: $creating) { ref in
-            ShiftFormView(editing: nil, defaultFecha: ref.fecha)
+            ShiftFormView(editing: nil, defaultFecha: ref.fecha).turniqSheet()
         }
         .confirmationDialog(
             L("¿Duplicar los \(inWeek.count) turnos de esta semana a la siguiente?"),
@@ -259,11 +259,14 @@ struct WeekView: View {
         var subtitle = job?.nombre ?? ""
         if !stations.isEmpty { subtitle += " · " + stations.joined(separator: ", ") }
         if s.esLibre { subtitle = L("Día libre") }
-        return Card {
+        // La tarjeta lleva el color del trabajo; el estado del turno
+        // lo cuentan las horas y la etiqueta de la derecha.
+        let jobColor: Color? = s.esLibre ? nil : job.map { T.hex($0.color) }
+        return Card(tint: jobColor) {
             HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(statusColor(st))
-                    .frame(width: 4)
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(jobColor ?? statusColor(st))
+                    .frame(width: 5)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(s.esLibre ? L("Libre") : Calc.rangeLabel(s, format12: fmt12))

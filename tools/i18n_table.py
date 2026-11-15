@@ -296,4 +296,6 @@ T = [
 ("Solo esta cuenta (%@)", "Only this account (%@)"),
 ("Todas las cuentas (%@)", "All accounts (%@)"),
 ("Con varias cuentas se puede elegir…", "With several accounts you can choose: reminders for the account in use only or for all, and a backup of one account or all."),
+("Las tarjetas de turnos y trabajos…", "Shift and job cards now carry each job's color."),
+("Hojas con las esquinas más redondeadas.", "Sheets with more rounded corners."),
 ]

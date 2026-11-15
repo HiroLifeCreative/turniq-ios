@@ -192,9 +192,13 @@ struct PressStyle: ButtonStyle {
 }
 
 /// Tarjeta clara estándar: degradado muy suave, borde fino, radio 20
-/// y sombra azulada (igual que `Card` de Android).
+/// y sombra azulada (igual que `Card` de Android). Con `tint` (el
+/// color de un trabajo) la tarjeta se tiñe de ese color, con el borde
+/// y la sombra a juego, para distinguir los trabajos de un vistazo.
 struct Card<Content: View>: View {
+    @Environment(\.colorScheme) private var scheme
     var padding: CGFloat = 16
+    var tint: Color? = nil
     @ViewBuilder var content: Content
     var body: some View {
         content
@@ -203,12 +207,26 @@ struct Card<Content: View>: View {
             .background {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(LinearGradient(colors: [T.cardTop, T.cardBottom], startPoint: .top, endPoint: .bottom))
-                    .shadow(color: T.shadow.opacity(0.20), radius: 12, y: 6)
+                    .shadow(color: (tint ?? T.shadow).opacity(tint == nil ? 0.20 : 0.22), radius: 12, y: 6)
+                if let tint {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(LinearGradient(
+                            colors: [tint.opacity(scheme == .dark ? 0.30 : 0.20),
+                                     tint.opacity(scheme == .dark ? 0.16 : 0.10)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                }
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(T.cardBorder, lineWidth: 0.5)
+                    .strokeBorder(tint.map { $0.opacity(0.45) } ?? T.cardBorder, lineWidth: tint == nil ? 0.5 : 1)
             }
+    }
+}
+
+extension View {
+    /// Estilo de las hojas de Turniq: esquinas bien redondeadas.
+    func turniqSheet() -> some View {
+        presentationCornerRadius(38)
     }
 }
 

@@ -39,7 +39,7 @@ struct TurniqShell: View {
         .font(.turniq(15))
         .sensoryFeedback(.selection, trigger: tab)
         .sheet(isPresented: $showMas) {
-            MasView()
+            MasView().turniqSheet()
         }
     }
 

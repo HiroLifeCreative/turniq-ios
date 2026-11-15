@@ -168,7 +168,7 @@ struct SettingsView: View {
         }
         .sheet(item: $shareFile) { f in
             ActivityView(items: [f.url])
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.medium, .large]).turniqSheet()
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
             guard case .success(let url) = result else { return }

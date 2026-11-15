@@ -212,7 +212,7 @@ struct AnnualSummaryView: View {
                         .font(.turniq(13)).foregroundStyle(T.text3)
                 }
                 ForEach(rows) { r in
-                    Card {
+                    Card(tint: T.hex(r.job.color)) {
                         HStack(spacing: 12) {
                             Circle().fill(T.hex(r.job.color)).frame(width: 10, height: 10)
                             VStack(alignment: .leading, spacing: 2) {
@@ -254,7 +254,7 @@ struct AnnualSummaryView: View {
         .navigationTitle(L("Resumen anual"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $shareFile) { f in
-            ActivityView(items: [f.url]).presentationDetents([.medium, .large])
+            ActivityView(items: [f.url]).presentationDetents([.medium, .large]).turniqSheet()
         }
     }
 }

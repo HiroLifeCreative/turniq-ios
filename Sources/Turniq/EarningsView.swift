@@ -288,7 +288,7 @@ struct EarningsView: View {
                 .font(.turniq(13)).foregroundStyle(T.text3)
         }
         ForEach(rows, id: \.job.id) { row in
-            Card {
+            Card(tint: T.hex(row.job.color)) {
                 HStack(spacing: 12) {
                     Circle().fill(T.hex(row.job.color)).frame(width: 10, height: 10)
                     VStack(alignment: .leading, spacing: 2) {

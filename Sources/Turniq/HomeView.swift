@@ -87,7 +87,7 @@ struct HomeView: View {
         .sheet(isPresented: $showClockSheet) { clockSheet }
         .sheet(isPresented: $showEditEntry) { editEntrySheet }
         .sheet(isPresented: $showNewShift) {
-            ShiftFormView(editing: nil, defaultFecha: Calc.todayYmd())
+            ShiftFormView(editing: nil, defaultFecha: Calc.todayYmd()).turniqSheet()
         }
         .alert(L("¿Propinas de este turno?"), isPresented: Binding(
             get: { tipsShiftId != nil },
@@ -357,7 +357,7 @@ struct HomeView: View {
         let job = store.job(id: s.jobId)
         let cd = countdown(s, now: now)
         return Button { goTab(1) } label: {
-            Card {
+            Card(tint: job.map { T.hex($0.color) }) {
                 HStack(spacing: 12) {
                     Image(systemName: "bell.fill")
                         .font(.system(size: 18, weight: .semibold))
@@ -391,7 +391,7 @@ struct HomeView: View {
         let stations = s.estacionIds.compactMap { id in
             job?.estaciones.first(where: { $0.id == id })?.nombre
         }
-        return Card {
+        return Card(tint: job.map { T.hex($0.color) }) {
             HStack(spacing: 16) {
                 VStack(spacing: 0) {
                     Text(String(Int(s.fecha.suffix(2)) ?? 0))
@@ -491,7 +491,7 @@ struct HomeView: View {
             .navigationTitle(L("Marcar entrada"))
             .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium]).turniqSheet()
     }
 
     /// Corregir la hora de entrada del turno en curso.
@@ -527,6 +527,6 @@ struct HomeView: View {
             .navigationTitle(L("Editar entrada"))
             .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium]).turniqSheet()
     }
 }

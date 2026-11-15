@@ -29,8 +29,8 @@ struct JobsView: View {
             .padding(16)
             .padding(.bottom, dockClearance)
         }
-        .sheet(item: $editing) { j in JobFormView(editing: j) }
-        .sheet(isPresented: $creating) { JobFormView(editing: nil) }
+        .sheet(item: $editing) { j in JobFormView(editing: j).turniqSheet() }
+        .sheet(isPresented: $creating) { JobFormView(editing: nil).turniqSheet() }
         .confirmationDialog(
             L("¿Eliminar este trabajo y sus turnos?"),
             isPresented: Binding(get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } }),
@@ -51,7 +51,7 @@ struct JobsView: View {
         }
         if let pin = job.pinMarcaje, !pin.isEmpty { detail += " · PIN \(pin)" }
         let next = Pay.nextPayday(job, settings: store.settings, from: Calc.todayYmd())
-        return Card {
+        return Card(tint: T.hex(job.color)) {
             HStack(spacing: 12) {
                 Circle().fill(T.hex(job.color)).frame(width: 14, height: 14)
                 VStack(alignment: .leading, spacing: 2) {

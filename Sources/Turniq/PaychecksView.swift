@@ -108,7 +108,7 @@ struct PaychecksView: View {
     private func row(_ p: PayInfo) -> some View {
         let saved = store.paycheck(jobId: p.job.id, payday: p.payday)
         let diff = saved.map { $0.recibido - p.totals.net }
-        return Card {
+        return Card(tint: T.hex(p.job.color)) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Calc.weekdayDate(p.payday))

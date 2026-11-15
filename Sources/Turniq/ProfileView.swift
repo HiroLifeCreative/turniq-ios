@@ -40,6 +40,10 @@ struct CountryPicker: View {
     }
 
     var body: some View {
+        list.turniqSheet()
+    }
+
+    private var list: some View {
         NavigationStack {
             List(results) { c in
                 Button {
